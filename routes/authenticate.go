@@ -45,7 +45,7 @@ func Authenticate(ctx utils.RouteContext, res http.ResponseWriter, req *http.Req
 			res.WriteHeader(http.StatusInternalServerError)
 			fmt.Printf("Failed to decode session response: %v\n", err)
 		} else {
-			token, err := utils.CreateAuthenticationKey(session.Id)
+			token, err := utils.CreateAuthenticationKey(ctx, session.Id)
 			if err != nil {
 				res.WriteHeader(http.StatusInternalServerError)
 				fmt.Printf("Failed to create authentication key: %v\n", err)

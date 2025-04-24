@@ -4,10 +4,9 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"os"
 )
 
-func GetFromHypixel(path string) (*string, error) {
+func GetFromHypixel(ctx RouteContext, path string) (*string, error) {
 	req, err := http.NewRequest(
 		"GET",
 		fmt.Sprintf("https://api.hypixel.net%s", path),
@@ -18,7 +17,7 @@ func GetFromHypixel(path string) (*string, error) {
 		return nil, err
 	}
 
-	req.Header.Set("API-Key", os.Getenv("HYPIXEL_API_KEY"))
+	req.Header.Set("API-Key", ctx.Config.HypixelKey)
 
 	client := http.Client{}
 

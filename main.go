@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/redis/go-redis/v9"
+	"fmt"
 	"net/http"
 	"skyblock-pv-backend/routes"
 	"skyblock-pv-backend/routes/utils"
@@ -51,9 +51,7 @@ type AuthenticatedRequestHandler struct {
 	handler func(utils.RouteContext, http.ResponseWriter, *http.Request)
 }
 
-var routeContext = utils.NewRouteContext(redis.NewClient(&redis.Options{
-	Addr: "localhost:6379",
-}))
+var routeContext = utils.NewRouteContext()
 
 func (not NotImplementedRequestHandler) handle(res http.ResponseWriter, _ *http.Request) {
 	res.WriteHeader(http.StatusMethodNotAllowed)
@@ -64,7 +62,7 @@ func (normal RequestHandler) handle(res http.ResponseWriter, req *http.Request) 
 }
 
 func (authenticated AuthenticatedRequestHandler) handle(res http.ResponseWriter, req *http.Request) {
-	isAuthenticated := utils.IsAuthenticated(req.Header.Get("Authorization"))
+	isAuthenticated := utils.IsAuthenticated(routeContext, req.Header.Get("Authorization"))
 	if !isAuthenticated {
 		res.WriteHeader(http.StatusUnauthorized)
 		return
@@ -107,7 +105,7 @@ func main() {
 		Get: authenticated(routes.GetStatus),
 	}))
 
-	err := http.ListenAndServe(":8080", nil)
+	err := http.ListenAndServe(fmt.Sprintf(":%s", routeContext.Config.Port), nil)
 
 	if err != nil {
 		panic(err)

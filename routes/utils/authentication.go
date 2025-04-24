@@ -2,11 +2,10 @@ package utils
 
 import (
 	"github.com/golang-jwt/jwt/v5"
-	"os"
 	"time"
 )
 
-func CreateAuthenticationKey(subject string) (string, error) {
+func CreateAuthenticationKey(ctx RouteContext, subject string) (string, error) {
 	token := jwt.NewWithClaims(
 		jwt.SigningMethodHS256,
 		jwt.MapClaims{
@@ -14,12 +13,12 @@ func CreateAuthenticationKey(subject string) (string, error) {
 			"exp": jwt.NewNumericDate(time.Now().Add(24 * time.Hour)),
 		},
 	)
-	return token.SignedString([]byte(os.Getenv("JWT_SECRET_KEY")))
+	return token.SignedString([]byte(ctx.Config.JwtToken))
 }
 
-func IsAuthenticated(data string) bool {
+func IsAuthenticated(ctx RouteContext, data string) bool {
 	token, err := jwt.Parse(data, func(token *jwt.Token) (interface{}, error) {
-		return []byte(os.Getenv("JWT_SECRET_KEY")), nil
+		return []byte(ctx.Config.JwtToken), nil
 	}, jwt.WithValidMethods([]string{jwt.SigningMethodHS256.Name}))
 
 	if err != nil {
