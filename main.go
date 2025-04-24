@@ -7,56 +7,105 @@ import (
 	"skyblock-pv-backend/routes/utils"
 )
 
+func setDefaults(route *RequestRoute) {
+	if route.Get == nil {
+		route.Get = NotImplementedRequestHandler{}
+	}
+	if route.Post == nil {
+		route.Post = NotImplementedRequestHandler{}
+	}
+	if route.Put == nil {
+		route.Put = NotImplementedRequestHandler{}
+	}
+	if route.Delete == nil {
+		route.Delete = NotImplementedRequestHandler{}
+	}
+}
+
+type RequestRoute struct {
+	Get    AbstractRequestHandler
+	Post   AbstractRequestHandler
+	Put    AbstractRequestHandler
+	Delete AbstractRequestHandler
+}
+
+type AbstractRequestHandler interface {
+	handle(http.ResponseWriter, *http.Request)
+}
+
+type NotImplementedRequestHandler struct{}
+
+func authenticated(handler func(utils.RouteContext, http.ResponseWriter, *http.Request)) AuthenticatedRequestHandler {
+	return AuthenticatedRequestHandler{handler: handler}
+}
+
+func public(handler func(utils.RouteContext, http.ResponseWriter, *http.Request)) RequestHandler {
+	return RequestHandler{handler: handler}
+}
+
 type RequestHandler struct {
-	method        string
-	authenticated bool
-	handler       func(utils.RouteContext, http.ResponseWriter, *http.Request)
+	handler func(utils.RouteContext, http.ResponseWriter, *http.Request)
+}
+
+type AuthenticatedRequestHandler struct {
+	handler func(utils.RouteContext, http.ResponseWriter, *http.Request)
 }
 
 var routeContext = utils.NewRouteContext(redis.NewClient(&redis.Options{
 	Addr: "localhost:6379",
 }))
 
-func handleRequests(handlers []RequestHandler) func(http.ResponseWriter, *http.Request) {
+func (not NotImplementedRequestHandler) handle(res http.ResponseWriter, _ *http.Request) {
+	res.WriteHeader(http.StatusMethodNotAllowed)
+}
+
+func (normal RequestHandler) handle(res http.ResponseWriter, req *http.Request) {
+	normal.handler(routeContext, res, req)
+}
+
+func (authenticated AuthenticatedRequestHandler) handle(res http.ResponseWriter, req *http.Request) {
+	isAuthenticated := utils.IsAuthenticated(req.Header.Get("Authorization"))
+	if !isAuthenticated {
+		res.WriteHeader(http.StatusUnauthorized)
+		return
+	}
+	authenticated.handler(routeContext, res, req)
+}
+
+func create(handlers RequestRoute) func(http.ResponseWriter, *http.Request) {
+	setDefaults(&handlers)
 	return func(res http.ResponseWriter, req *http.Request) {
-		isAuthenticated := utils.IsAuthenticated(req.Header.Get("Authorization"))
-
-		requiresAuth := false
-		badMethod := false
-
-		for _, handler := range handlers {
-			if req.Method != handler.method {
-				badMethod = true
-			} else if !isAuthenticated && handler.authenticated {
-				requiresAuth = true
-			} else {
-				handler.handler(routeContext, res, req)
-				return
-			}
-		}
-
-		if badMethod {
+		switch req.Method {
+		case "GET":
+			handlers.Get.handle(res, req)
+		case "POST":
+			handlers.Post.handle(res, req)
+		case "PUT":
+			handlers.Put.handle(res, req)
+		case "DELETE":
+			handlers.Delete.handle(res, req)
+		default:
 			res.WriteHeader(http.StatusMethodNotAllowed)
-		} else if requiresAuth {
-			res.WriteHeader(http.StatusUnauthorized)
 		}
 	}
 }
 
-func handleRequest(method string, handler func(utils.RouteContext, http.ResponseWriter, *http.Request)) func(http.ResponseWriter, *http.Request) {
-	return handleRequests([]RequestHandler{{method, false, handler}})
-}
-
-func handleAuthenticatedRequest(method string, handler func(utils.RouteContext, http.ResponseWriter, *http.Request)) func(http.ResponseWriter, *http.Request) {
-	return handleRequests([]RequestHandler{{method, true, handler}})
-}
-
 func main() {
-	http.HandleFunc("/authenticate", handleRequest("GET", routes.Authenticate))
-	http.HandleFunc("/profiles/{id}", handleAuthenticatedRequest("GET", routes.GetProfiles))
-	http.HandleFunc("/garden/{profile}", handleAuthenticatedRequest("GET", routes.GetGarden))
-	http.HandleFunc("/museum/{profile}", handleAuthenticatedRequest("GET", routes.GetMuseum))
-	http.HandleFunc("/status/{id}", handleAuthenticatedRequest("GET", routes.GetStatus))
+	http.HandleFunc("/authenticate", create(RequestRoute{
+		Get: public(routes.Authenticate),
+	}))
+	http.HandleFunc("/profiles/{id}", create(RequestRoute{
+		Get: authenticated(routes.GetProfiles),
+	}))
+	http.HandleFunc("/garden/{profile}", create(RequestRoute{
+		Get: authenticated(routes.GetGarden),
+	}))
+	http.HandleFunc("/museum/{profile}", create(RequestRoute{
+		Get: authenticated(routes.GetMuseum),
+	}))
+	http.HandleFunc("/status/{id}", create(RequestRoute{
+		Get: authenticated(routes.GetStatus),
+	}))
 
 	err := http.ListenAndServe(":8080", nil)
 
