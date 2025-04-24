@@ -26,6 +26,8 @@ const (
 	TAG_LONG_ARRAY = 0xC // signed int (4 bytes) + size * 8
 )
 
+// mona is very smart and cute :3
+
 /* debug
 func hexDump(p []byte) string {
 

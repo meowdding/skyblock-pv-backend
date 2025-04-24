@@ -12,9 +12,9 @@ const gardenCacheDuration = 10 * time.Minute
 const gardenCacheName = "garden"
 const gardenHypixelPath = "/v2/skyblock/garden"
 
-func GetGarden(ctx utils.RouteContext, res http.ResponseWriter, req *http.Request) {
+func GetGarden(ctx utils.RouteContext, authentication utils.AuthenticationContext, res http.ResponseWriter, req *http.Request) {
 	profileId := req.PathValue("profile")
-	result, err := ctx.GetFromCache(gardenCacheName, profileId)
+	result, err := ctx.GetFromCache(authentication, gardenCacheName, profileId)
 
 	if err != nil {
 		profiles, err := utils.GetFromHypixel(ctx, fmt.Sprintf("%s?profile=%s", gardenHypixelPath, profileId), true)
