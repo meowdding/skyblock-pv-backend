@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"net/http"
+	"skyblock-pv-backend/auctions"
 	"skyblock-pv-backend/routes"
 	"skyblock-pv-backend/routes/utils"
 )
@@ -89,7 +90,10 @@ func create(handlers RequestRoute) func(http.ResponseWriter, *http.Request) {
 }
 
 func main() {
+	auctions.FetchAll(&routeContext)
+}
 
+func main_() {
 	http.HandleFunc("/authenticate", create(RequestRoute{
 		Get: public(routes.Authenticate),
 	}))
@@ -106,6 +110,7 @@ func main() {
 		Get: authenticated(routes.GetStatus),
 	}))
 
+	fmt.Printf("Listening on 0.0.0.0:%s\n", routeContext.Config.Port)
 	err := http.ListenAndServe(fmt.Sprintf(":%s", routeContext.Config.Port), nil)
 
 	if err != nil {

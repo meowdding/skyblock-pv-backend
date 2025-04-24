@@ -312,6 +312,11 @@ type Compound struct {
 	backing map[string]WrappedTag
 }
 
+func (compound Compound) Contains(name string) bool {
+	_, ok := compound.backing[name]
+	return ok
+}
+
 func (compound Compound) Get(name string) *WrappedTag {
 	tag := compound.backing[name]
 	return &tag
