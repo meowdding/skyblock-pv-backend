@@ -4,23 +4,24 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"skyblock-pv-backend/routes/utils"
 	"time"
 )
 
-const cacheDuration = 5 * time.Minute
-const cacheName = "profiles"
-const hypixelPath = "/v2/skyblock/profiles"
+const profileCacheDuration = 5 * time.Minute
+const profileCacheName = "profiles"
+const profileHypixelPath = "/v2/skyblock/profiles"
 
-func GetProfiles(ctx RouteContext, res http.ResponseWriter, req *http.Request) {
-	profileId := req.PathValue("id")
-	result, err := ctx.GetFromCache(cacheName, profileId)
+func GetProfiles(ctx utils.RouteContext, res http.ResponseWriter, req *http.Request) {
+	playerId := req.PathValue("id")
+	result, err := ctx.GetFromCache(profileCacheName, playerId)
 
 	if err != nil {
 		println("Cache miss, fetching from Hypixel API")
 
-		profiles, err := GetFromHypixel(fmt.Sprintf("%s?uuid=%s", hypixelPath, profileId))
+		profiles, err := utils.GetFromHypixel(fmt.Sprintf("%s?uuid=%s", profileHypixelPath, playerId))
 		if err == nil {
-			err = ctx.AddToCache(cacheName, profileId, profiles, cacheDuration)
+			err = ctx.AddToCache(profileCacheName, playerId, profiles, profileCacheDuration)
 		}
 
 		if err != nil {
@@ -33,6 +34,6 @@ func GetProfiles(ctx RouteContext, res http.ResponseWriter, req *http.Request) {
 	}
 
 	res.Header().Set("Content-Type", "application/json")
-	res.Header().Set("Cache-Control", fmt.Sprintf("max-age=%d", int(cacheDuration.Seconds())))
+	res.Header().Set("Cache-Control", fmt.Sprintf("max-age=%d", int(profileCacheDuration.Seconds())))
 	_, _ = io.WriteString(res, result)
 }

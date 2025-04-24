@@ -1,4 +1,4 @@
-package routes
+package utils
 
 import (
 	"context"
@@ -7,7 +7,7 @@ import (
 	"time"
 )
 
-const EnableRedis = false
+const EnableRedis = true
 
 type RouteContext struct {
 	redis *redis.Client
@@ -27,7 +27,7 @@ func (ctx *RouteContext) GetFromCache(path string, key string) (string, error) {
 	if result.Err() != nil {
 		return "", result.Err()
 	}
-	return result.String(), nil
+	return result.Val(), nil
 }
 
 func (ctx *RouteContext) AddToCache(path string, key string, value *string, duration time.Duration) error {

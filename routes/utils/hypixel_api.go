@@ -1,9 +1,10 @@
-package routes
+package utils
 
 import (
 	"fmt"
 	"io"
 	"net/http"
+	"os"
 )
 
 func GetFromHypixel(path string) (*string, error) {
@@ -17,7 +18,7 @@ func GetFromHypixel(path string) (*string, error) {
 		return nil, err
 	}
 
-	req.Header.Set("API-Key", "77578c67-0fad-40e5-8ae7-d95461019308")
+	req.Header.Set("API-Key", os.Getenv("HYPIXEL_API_KEY"))
 
 	client := http.Client{}
 
