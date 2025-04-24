@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	"skyblock-pv-backend/routes/utils"
+	"slices"
 )
 
 const mojangAuthUrl = "https://sessionserver.mojang.com/session/minecraft/hasJoined?username=%s&serverId=%s"
@@ -45,7 +46,8 @@ func Authenticate(ctx utils.RouteContext, res http.ResponseWriter, req *http.Req
 			res.WriteHeader(http.StatusInternalServerError)
 			fmt.Printf("Failed to decode session response: %v\n", err)
 		} else {
-			token, err := utils.CreateAuthenticationKey(ctx, session.Id)
+			bypassCache := req.URL.Query().Has("bypassCache") && slices.Contains(ctx.Config.Admins, session.Id)
+			token, err := utils.CreateAuthenticationKey(ctx, session.Id, bypassCache)
 			if err != nil {
 				res.WriteHeader(http.StatusInternalServerError)
 				fmt.Printf("Failed to create authentication key: %v\n", err)

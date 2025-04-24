@@ -35,7 +35,7 @@ type AbstractRequestHandler interface {
 
 type NotImplementedRequestHandler struct{}
 
-func authenticated(handler func(utils.RouteContext, http.ResponseWriter, *http.Request)) AuthenticatedRequestHandler {
+func authenticated(handler func(utils.RouteContext, utils.AuthenticationContext, http.ResponseWriter, *http.Request)) AuthenticatedRequestHandler {
 	return AuthenticatedRequestHandler{handler: handler}
 }
 
@@ -48,7 +48,7 @@ type RequestHandler struct {
 }
 
 type AuthenticatedRequestHandler struct {
-	handler func(utils.RouteContext, http.ResponseWriter, *http.Request)
+	handler func(utils.RouteContext, utils.AuthenticationContext, http.ResponseWriter, *http.Request)
 }
 
 var routeContext = utils.NewRouteContext()
@@ -62,12 +62,12 @@ func (normal RequestHandler) handle(res http.ResponseWriter, req *http.Request) 
 }
 
 func (authenticated AuthenticatedRequestHandler) handle(res http.ResponseWriter, req *http.Request) {
-	isAuthenticated := utils.IsAuthenticated(routeContext, req.Header.Get("Authorization"))
-	if !isAuthenticated {
+	context := utils.GetAuthenticatedContext(routeContext, req.Header.Get("Authorization"))
+	if context == nil {
 		res.WriteHeader(http.StatusUnauthorized)
 		return
 	}
-	authenticated.handler(routeContext, res, req)
+	authenticated.handler(routeContext, *context, res, req)
 }
 
 func create(handlers RequestRoute) func(http.ResponseWriter, *http.Request) {
@@ -89,7 +89,6 @@ func create(handlers RequestRoute) func(http.ResponseWriter, *http.Request) {
 }
 
 func main() {
-
 	http.HandleFunc("/authenticate", create(RequestRoute{
 		Get: public(routes.Authenticate),
 	}))

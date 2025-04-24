@@ -12,9 +12,9 @@ const statusCacheDuration = 5 * time.Minute
 const statusCacheName = "status"
 const statusHypixelPath = "/v2/status"
 
-func GetStatus(ctx utils.RouteContext, res http.ResponseWriter, req *http.Request) {
+func GetStatus(ctx utils.RouteContext, authentication utils.AuthenticationContext, res http.ResponseWriter, req *http.Request) {
 	playerId := req.PathValue("id")
-	result, err := ctx.GetFromCache(statusCacheName, playerId)
+	result, err := ctx.GetFromCache(authentication, statusCacheName, playerId)
 
 	if err != nil {
 		profiles, err := utils.GetFromHypixel(ctx, fmt.Sprintf("%s?uuid=%s", statusHypixelPath, playerId), true)

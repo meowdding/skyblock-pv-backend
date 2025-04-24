@@ -6,12 +6,13 @@ import (
 )
 
 type Config struct {
-	RedisAddress  string `json:"redis_address"`
-	RedisUsername string `json:"redis_username"`
-	RedisPassword string `json:"redis_password"`
-	JwtToken      string `json:"jwt_token"`
-	HypixelKey    string `json:"hypixel_key"`
-	Port          string `json:"port"`
+	RedisAddress  string   `json:"redis_address"`
+	RedisUsername string   `json:"redis_username"`
+	RedisPassword string   `json:"redis_password"`
+	JwtToken      string   `json:"jwt_token"`
+	HypixelKey    string   `json:"hypixel_key"`
+	Port          string   `json:"port"`
+	Admins        []string `json:"admins"`
 }
 
 func NewConfig() Config {
