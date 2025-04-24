@@ -7,5 +7,5 @@ type Item struct {
 }
 
 func (item Item) GetSbId() string {
-	return item.Get("ExtraAttributes").AsCompound().Get("id").AsString()
+	return item.Get("tag").AsCompound().Get("ExtraAttributes").AsCompound().Get("id").AsString()
 }

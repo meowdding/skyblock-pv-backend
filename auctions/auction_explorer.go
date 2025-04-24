@@ -50,7 +50,7 @@ func cache(ctx routeUtils.RouteContext, auction *AuctionStruct) {
 		println(err.Error())
 		return
 	}
-	_ = ctx.AddToCache("auctions.index", auction.Id, data, time.Hour*3)
+	_ = ctx.AddToCache("auctions.index", auction.Id, data, time.Hour*5)
 }
 
 func fetch(ctx routeUtils.RouteContext) {
@@ -124,5 +124,5 @@ func (auction *AuctionStruct) GetItem() (*utils.Item, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &utils.Item{Compound: tag.AsCompound()}, nil
+	return &utils.Item{Compound: tag.AsCompound().Get("i").AsList().GetValues()[0].(*nbt.Compound)}, nil
 }
