@@ -89,6 +89,7 @@ func create(handlers RequestRoute) func(http.ResponseWriter, *http.Request) {
 }
 
 func main() {
+
 	http.HandleFunc("/authenticate", create(RequestRoute{
 		Get: public(routes.Authenticate),
 	}))

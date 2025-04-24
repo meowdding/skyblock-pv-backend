@@ -17,7 +17,7 @@ func GetStatus(ctx utils.RouteContext, res http.ResponseWriter, req *http.Reques
 	result, err := ctx.GetFromCache(statusCacheName, playerId)
 
 	if err != nil {
-		profiles, err := utils.GetFromHypixel(ctx, fmt.Sprintf("%s?uuid=%s", statusHypixelPath, playerId))
+		profiles, err := utils.GetFromHypixel(ctx, fmt.Sprintf("%s?uuid=%s", statusHypixelPath, playerId), true)
 		if err == nil {
 			err = ctx.AddToCache(statusCacheName, playerId, profiles, statusCacheDuration)
 		}

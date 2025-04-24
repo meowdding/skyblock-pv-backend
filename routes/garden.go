@@ -17,7 +17,7 @@ func GetGarden(ctx utils.RouteContext, res http.ResponseWriter, req *http.Reques
 	result, err := ctx.GetFromCache(gardenCacheName, profileId)
 
 	if err != nil {
-		profiles, err := utils.GetFromHypixel(ctx, fmt.Sprintf("%s?profile=%s", gardenHypixelPath, profileId))
+		profiles, err := utils.GetFromHypixel(ctx, fmt.Sprintf("%s?profile=%s", gardenHypixelPath, profileId), true)
 		if err == nil {
 			err = ctx.AddToCache(gardenCacheName, profileId, profiles, gardenCacheDuration)
 		}

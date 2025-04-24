@@ -6,7 +6,7 @@ import (
 	"net/http"
 )
 
-func GetFromHypixel(ctx RouteContext, path string) (*string, error) {
+func GetFromHypixel(ctx RouteContext, path string, requiresAuth bool) (*string, error) {
 	req, err := http.NewRequest(
 		"GET",
 		fmt.Sprintf("https://api.hypixel.net%s", path),
@@ -17,7 +17,9 @@ func GetFromHypixel(ctx RouteContext, path string) (*string, error) {
 		return nil, err
 	}
 
-	req.Header.Set("API-Key", ctx.Config.HypixelKey)
+	if requiresAuth {
+		req.Header.Set("API-Key", ctx.Config.HypixelKey)
+	}
 
 	client := http.Client{}
 

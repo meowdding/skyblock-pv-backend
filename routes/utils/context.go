@@ -26,24 +26,67 @@ func NewRouteContext() RouteContext {
 	return RouteContext{client, &config}
 }
 
-func (ctx *RouteContext) GetFromCache(path string, key string) (string, error) {
+func (ctx *RouteContext) GetAll(path string) ([]string, error) {
+	if ctx.redis == nil {
+		return nil, fmt.Errorf("not found")
+	}
+	result := ctx.redis.Keys(context.Background(), fmt.Sprintf("%s:*", path))
+	if result.Err() != nil {
+		return nil, result.Err()
+	}
+
+	keys := result.Val()
+	data := make([]string, len(keys))
+
+	var err error = nil
+	for i, key := range keys {
+		data[i], err = ctx.GetFromCacheByKey(key)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return data, nil
+}
+
+func createKey(path string, key string) string {
+	return fmt.Sprintf("%s:%s", path, key)
+}
+
+func (ctx *RouteContext) IsCached(path string, key string) bool {
+	if ctx.redis == nil {
+		return false
+	}
+	result := ctx.redis.Get(context.Background(), createKey(path, key))
+	return result.Err() == nil
+}
+
+func (ctx *RouteContext) Delete(path string, key string) error {
+	if ctx.redis == nil {
+		return fmt.Errorf("not found")
+	}
+	result := ctx.redis.Del(context.Background(), createKey(path, key))
+	return result.Err()
+}
+
+func (ctx *RouteContext) GetFromCacheByKey(key string) (string, error) {
 	if ctx.redis == nil {
 		return "", fmt.Errorf("not found")
 	}
-	result := ctx.redis.Get(context.Background(), fmt.Sprintf("%s:%s", path, key))
+	result := ctx.redis.Get(context.Background(), key)
 	if result.Err() != nil {
 		return "", result.Err()
 	}
 	return result.Val(), nil
 }
 
-func (ctx *RouteContext) AddToCache(path string, key string, value *string, duration time.Duration) error {
+func (ctx *RouteContext) GetFromCache(path string, key string) (string, error) {
+	return ctx.GetFromCacheByKey(createKey(path, key))
+}
+
+func (ctx *RouteContext) AddToCache(path string, key string, value interface{}, duration time.Duration) error {
 	if ctx.redis == nil {
 		return nil
 	}
-	result := ctx.redis.Set(context.Background(), fmt.Sprintf("%s:%s", path, key), value, duration)
-	if result.Err() != nil {
-		return result.Err()
-	}
-	return nil
+	result := ctx.redis.Set(context.Background(), createKey(path, key), value, duration)
+	return result.Err()
 }
