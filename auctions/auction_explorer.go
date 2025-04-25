@@ -5,7 +5,6 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"os"
 	routeUtils "skyblock-pv-backend/routes/utils"
 	"skyblock-pv-backend/utils"
 	"skyblock-pv-backend/utils/nbt"
@@ -13,6 +12,95 @@ import (
 	"strings"
 	"time"
 )
+
+type opMode interface {
+	GetAuctions(ctx *routeUtils.RouteContext) ([]AuctionStruct, error)
+	Add(ctx *routeUtils.RouteContext, respond *AuctionRespond)
+	Finish(ctx *routeUtils.RouteContext)
+	Debug(page int)
+}
+
+type prod struct {
+	opMode
+	auctions []AuctionStruct
+}
+
+func (prod prod) Add(_ *routeUtils.RouteContext, response *AuctionRespond) {
+	if prod.auctions == nil {
+		prod.auctions = make([]AuctionStruct, 0)
+	}
+	prod.auctions = append(prod.auctions, response.Auctions...)
+}
+
+func (prod prod) Finish(_ *routeUtils.RouteContext) {}
+
+func (prod prod) GetAuctions(ctx *routeUtils.RouteContext) ([]AuctionStruct, error) {
+	err := fetch(*ctx, &prod)
+	if err != nil {
+		return nil, err
+	}
+	return prod.auctions, nil
+}
+
+func (prod prod) Debug(_ int) {}
+
+type dev struct {
+	opMode
+	auctions []AuctionStruct
+	Duration time.Duration
+}
+
+func (dev dev) Add(ctx *routeUtils.RouteContext, response *AuctionRespond) {
+	cacheAll(ctx, response)
+	if dev.auctions == nil {
+		dev.auctions = make([]AuctionStruct, 0)
+	}
+	dev.auctions = append(dev.auctions, response.Auctions...)
+}
+
+func (dev dev) Finish(ctx *routeUtils.RouteContext) {
+	_ = ctx.AddToCache("auctions", "cached", "<3", dev.Duration)
+}
+
+func (dev dev) GetAuctions(ctx *routeUtils.RouteContext) ([]AuctionStruct, error) {
+	fmt.Println("Using dev mode, PLEASE DONT USE IN PROD :sob:")
+	if ctx.IsCached("auctions", "cached") {
+		fmt.Println("Retrieving previously cached data")
+		data, err := dev.readCached(ctx)
+		if err != nil {
+			return nil, err
+		}
+		return *data, nil
+	}
+
+	err := fetch(*ctx, &dev)
+	if err != nil {
+		return nil, err
+	}
+	return dev.auctions, nil
+}
+
+func (dev dev) Debug(page int) {
+	fmt.Printf("Fetching page %d\n", page)
+}
+
+func (dev dev) readCached(ctx *routeUtils.RouteContext) (*[]AuctionStruct, error) {
+	auctions, err := ctx.GetAll("auctions.index")
+	if err != nil {
+		return nil, err
+	}
+	fmt.Printf("Loading %d auctions from cache\n", len(auctions))
+	dev.auctions = make([]AuctionStruct, 0)
+	for _, auctionJson := range auctions {
+		var auction AuctionStruct
+		err = json.Unmarshal([]byte(auctionJson), &auction)
+		if err != nil {
+			return nil, err
+		}
+		dev.auctions = append(dev.auctions, auction)
+	}
+	return &dev.auctions, nil
+}
 
 func GetCachedAuctions(ctx *routeUtils.RouteContext) (*string, error) {
 	data, err := ctx.GetFromCache(nil, "auctions", "cached")
@@ -23,34 +111,27 @@ func GetCachedAuctions(ctx *routeUtils.RouteContext) (*string, error) {
 }
 
 func FetchAll(ctx *routeUtils.RouteContext) error {
-	if !ctx.IsCached("auctions", "index") {
-		fetch(*ctx)
+	var opMode opMode
+	if utils.Debug {
+		opMode = dev{}
 	} else {
-		println("Data cached :3")
+		opMode = prod{}
 	}
 
-	auctions, err := ctx.GetAll("auctions.index")
+	auctions, err := opMode.GetAuctions(ctx)
 	if err != nil {
 		return err
 	}
-	auctionList := make([]AuctionStruct, len(auctions))
-	for i, auctionJson := range auctions {
-		var auction AuctionStruct
-		err = json.Unmarshal([]byte(auctionJson), &auction)
-		if err != nil {
-			return err
-		}
-		auctionList[i] = auction
-	}
 
-	items := calculateAverage(auctionList)
+	items := calculateAverage(auctions)
 	data, err := json.Marshal(*items)
 	if err != nil {
 		return err
 	}
 
 	_ = ctx.AddToCache("auctions", "cached", data, time.Hour*2)
-	println("Finished fetching & caching auctions.")
+
+	fmt.Println("Finished updating!")
 	return nil
 }
 
@@ -101,20 +182,6 @@ func calculateAverage(auctions []AuctionStruct) *map[string]ItemInfo {
 	return &actualItems
 }
 
-func write(name string, a interface{}) {
-	file, err := os.Create(fmt.Sprintf("%s.json", name))
-	if err != nil {
-		panic(err)
-	}
-	defer file.Close()
-	d, err := json.MarshalIndent(a, "", "  ")
-	if err != nil {
-		panic(err)
-	}
-
-	file.Write(d)
-}
-
 func calculateArithmeticMean(list []int64) float64 {
 	var sum float64 = 0
 	for _, i := range list {
@@ -158,34 +225,30 @@ func cache(ctx routeUtils.RouteContext, auction *AuctionStruct) {
 	_ = ctx.AddToCache("auctions.index", auction.Id, data, time.Hour*7)
 }
 
-func fetch(ctx routeUtils.RouteContext) {
-	data, err := fetchPage(ctx, 0)
+func fetch(ctx routeUtils.RouteContext, mode opMode) error {
+	data, err := fetchPage(ctx, 0, &mode)
 	if err != nil {
-		println("so sad :C")
-		return
+		return err
 	}
-	cacheAll(&ctx, data)
+	mode.Add(&ctx, data)
 
 	for i := range data.TotalPages {
 		if i == 0 {
 			continue
 		}
-		data, err = fetchPage(ctx, i)
+		data, err = fetchPage(ctx, i, &mode)
 		if err != nil {
 			fmt.Printf("so sad^%d", i)
-			return
+			return err
 		}
-		cacheAll(&ctx, data)
+		mode.Add(&ctx, data)
 	}
-
-	err = ctx.AddToCache("auctions", "index", "yay :3", time.Hour*7)
-	if err != nil {
-		panic(err)
-	}
+	mode.Finish(&ctx)
+	return err
 }
 
-func fetchPage(ctx routeUtils.RouteContext, page int) (*AuctionRespond, error) {
-	fmt.Printf("Fetching Page number %d\n", page)
+func fetchPage(ctx routeUtils.RouteContext, page int, mode *opMode) (*AuctionRespond, error) {
+	(*mode).Debug(page)
 	res, err := routeUtils.GetFromHypixel(ctx, fmt.Sprintf("/v2/skyblock/auctions?page=%d", page), false)
 	if err != nil {
 		println("Error fetching data from hypixel")

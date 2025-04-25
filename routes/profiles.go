@@ -17,8 +17,6 @@ func GetProfiles(ctx utils.RouteContext, authentication utils.AuthenticationCont
 	result, err := ctx.GetFromCache(&authentication, profileCacheName, playerId)
 
 	if err != nil {
-		println("Cache miss, fetching from Hypixel API")
-
 		profiles, err := utils.GetFromHypixel(ctx, fmt.Sprintf("%s?uuid=%s", profileHypixelPath, playerId), true)
 		if err == nil {
 			err = ctx.AddToCache(profileCacheName, playerId, profiles, profileCacheDuration)

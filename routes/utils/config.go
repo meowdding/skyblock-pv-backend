@@ -13,6 +13,7 @@ type Config struct {
 	HypixelKey    string   `json:"hypixel_key"`
 	Port          string   `json:"port"`
 	Admins        []string `json:"admins"`
+	DevMode       bool     `json:"dev_mode"`
 }
 
 func NewConfig() Config {
