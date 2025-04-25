@@ -14,7 +14,7 @@ const profileHypixelPath = "/v2/skyblock/profiles"
 
 func GetProfiles(ctx utils.RouteContext, authentication utils.AuthenticationContext, res http.ResponseWriter, req *http.Request) {
 	playerId := req.PathValue("id")
-	result, err := ctx.GetFromCache(authentication, profileCacheName, playerId)
+	result, err := ctx.GetFromCache(&authentication, profileCacheName, playerId)
 
 	if err != nil {
 		println("Cache miss, fetching from Hypixel API")

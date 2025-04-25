@@ -14,7 +14,7 @@ const museumHypixelPath = "/v2/skyblock/museum"
 
 func GetMuseum(ctx utils.RouteContext, authentication utils.AuthenticationContext, res http.ResponseWriter, req *http.Request) {
 	profileId := req.PathValue("profile")
-	result, err := ctx.GetFromCache(authentication, museumCacheName, profileId)
+	result, err := ctx.GetFromCache(&authentication, museumCacheName, profileId)
 
 	if err != nil {
 		profiles, err := utils.GetFromHypixel(ctx, fmt.Sprintf("%s?profile=%s", museumHypixelPath, profileId), true)

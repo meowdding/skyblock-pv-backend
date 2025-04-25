@@ -6,6 +6,7 @@ import (
 	"skyblock-pv-backend/auctions"
 	"skyblock-pv-backend/routes"
 	"skyblock-pv-backend/routes/utils"
+	"time"
 )
 
 func setDefaults(route *RequestRoute) {
@@ -89,11 +90,26 @@ func create(handlers RequestRoute) func(http.ResponseWriter, *http.Request) {
 	}
 }
 
-func main_() {
-	auctions.FetchAll(&routeContext)
+func fetchData() {
+	err := auctions.FetchAll(&routeContext)
+	if err != nil {
+		panic(err) // panic because we just started
+	}
+	updateData := time.NewTicker(time.Hour)
+	for {
+		select {
+		case <-updateData.C:
+			err = auctions.FetchAll(&routeContext)
+			if err != nil {
+				fmt.Printf("Error fetching auctions: %v\n", err)
+				fmt.Print("Trying again later, using current data.")
+			}
+		}
+	}
 }
 
 func main() {
+	go fetchData()
 	http.HandleFunc("/authenticate", create(RequestRoute{
 		Get: public(routes.Authenticate),
 	}))
@@ -108,6 +124,9 @@ func main() {
 	}))
 	http.HandleFunc("/status/{id}", create(RequestRoute{
 		Get: authenticated(routes.GetStatus),
+	}))
+	http.HandleFunc("/auctions", create(RequestRoute{
+		Get: public(routes.GetLbin),
 	}))
 
 	fmt.Printf("Listening on 0.0.0.0:%s\n", routeContext.Config.Port)

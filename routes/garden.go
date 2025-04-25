@@ -14,7 +14,7 @@ const gardenHypixelPath = "/v2/skyblock/garden"
 
 func GetGarden(ctx utils.RouteContext, authentication utils.AuthenticationContext, res http.ResponseWriter, req *http.Request) {
 	profileId := req.PathValue("profile")
-	result, err := ctx.GetFromCache(authentication, gardenCacheName, profileId)
+	result, err := ctx.GetFromCache(&authentication, gardenCacheName, profileId)
 
 	if err != nil {
 		profiles, err := utils.GetFromHypixel(ctx, fmt.Sprintf("%s?profile=%s", gardenHypixelPath, profileId), true)

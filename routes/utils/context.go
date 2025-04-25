@@ -79,8 +79,8 @@ func (ctx *RouteContext) GetFromCacheByKey(key string) (string, error) {
 	return result.Val(), nil
 }
 
-func (ctx *RouteContext) GetFromCache(authContext AuthenticationContext, path string, key string) (string, error) {
-	if authContext.BypassCache {
+func (ctx *RouteContext) GetFromCache(authContext *AuthenticationContext, path string, key string) (string, error) {
+	if authContext != nil && (*authContext).BypassCache {
 		return "", fmt.Errorf("not found")
 	}
 	return ctx.GetFromCacheByKey(createKey(path, key))

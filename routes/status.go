@@ -14,7 +14,7 @@ const statusHypixelPath = "/v2/status"
 
 func GetStatus(ctx utils.RouteContext, authentication utils.AuthenticationContext, res http.ResponseWriter, req *http.Request) {
 	playerId := req.PathValue("id")
-	result, err := ctx.GetFromCache(authentication, statusCacheName, playerId)
+	result, err := ctx.GetFromCache(&authentication, statusCacheName, playerId)
 
 	if err != nil {
 		profiles, err := utils.GetFromHypixel(ctx, fmt.Sprintf("%s?uuid=%s", statusHypixelPath, playerId), true)

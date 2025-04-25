@@ -14,7 +14,15 @@ import (
 	"time"
 )
 
-func FetchAll(ctx *routeUtils.RouteContext) {
+func GetCachedAuctions(ctx *routeUtils.RouteContext) (*string, error) {
+	data, err := ctx.GetFromCache(nil, "auctions", "cached")
+	if err != nil {
+		return nil, err
+	}
+	return &data, nil
+}
+
+func FetchAll(ctx *routeUtils.RouteContext) error {
 	if !ctx.IsCached("auctions", "index") {
 		fetch(*ctx)
 	} else {
@@ -23,22 +31,30 @@ func FetchAll(ctx *routeUtils.RouteContext) {
 
 	auctions, err := ctx.GetAll("auctions.index")
 	if err != nil {
-		panic(err)
+		return err
 	}
 	auctionList := make([]AuctionStruct, len(auctions))
 	for i, auctionJson := range auctions {
 		var auction AuctionStruct
 		err = json.Unmarshal([]byte(auctionJson), &auction)
 		if err != nil {
-			panic(err)
+			return err
 		}
 		auctionList[i] = auction
 	}
 
-	calculateAverage(auctionList)
+	items := calculateAverage(auctionList)
+	data, err := json.Marshal(*items)
+	if err != nil {
+		return err
+	}
+
+	_ = ctx.AddToCache("auctions", "cached", data, time.Hour*2)
+	println("Finished fetching & caching auctions.")
+	return nil
 }
 
-func calculateAverage(auctions []AuctionStruct) {
+func calculateAverage(auctions []AuctionStruct) *map[string]ItemInfo {
 	var items = make(map[string][]int64)
 
 	fmt.Printf("Searching %d auctions\n", len(auctions))
@@ -82,8 +98,7 @@ func calculateAverage(auctions []AuctionStruct) {
 		}
 	}
 
-	write("auctions", actualItems)
-	write("pets", pets)
+	return &actualItems
 }
 
 func write(name string, a interface{}) {
@@ -140,7 +155,7 @@ func cache(ctx routeUtils.RouteContext, auction *AuctionStruct) {
 		println(err.Error())
 		return
 	}
-	_ = ctx.AddToCache("auctions.index", auction.Id, data, time.Hour*5)
+	_ = ctx.AddToCache("auctions.index", auction.Id, data, time.Hour*7)
 }
 
 func fetch(ctx routeUtils.RouteContext) {
@@ -163,7 +178,7 @@ func fetch(ctx routeUtils.RouteContext) {
 		cacheAll(&ctx, data)
 	}
 
-	err = ctx.AddToCache("auctions", "index", "yay :3", time.Hour*5)
+	err = ctx.AddToCache("auctions", "index", "yay :3", time.Hour*7)
 	if err != nil {
 		panic(err)
 	}
