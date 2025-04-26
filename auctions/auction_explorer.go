@@ -25,24 +25,24 @@ type prod struct {
 	auctions []AuctionStruct
 }
 
-func (prod prod) Add(_ *routeUtils.RouteContext, response *AuctionRespond) {
+func (prod *prod) Add(_ *routeUtils.RouteContext, response *AuctionRespond) {
 	if prod.auctions == nil {
 		prod.auctions = make([]AuctionStruct, 0)
 	}
 	prod.auctions = append(prod.auctions, response.Auctions...)
 }
 
-func (prod prod) Finish(_ *routeUtils.RouteContext) {}
+func (prod *prod) Finish(_ *routeUtils.RouteContext) {}
 
-func (prod prod) GetAuctions(ctx *routeUtils.RouteContext) ([]AuctionStruct, error) {
-	err := fetch(*ctx, &prod)
+func (prod *prod) GetAuctions(ctx *routeUtils.RouteContext) ([]AuctionStruct, error) {
+	err := fetch(*ctx, prod)
 	if err != nil {
 		return nil, err
 	}
 	return prod.auctions, nil
 }
 
-func (prod prod) Debug(_ int) {}
+func (prod *prod) Debug(_ int) {}
 
 type dev struct {
 	opMode
@@ -50,7 +50,7 @@ type dev struct {
 	Duration time.Duration
 }
 
-func (dev dev) Add(ctx *routeUtils.RouteContext, response *AuctionRespond) {
+func (dev *dev) Add(ctx *routeUtils.RouteContext, response *AuctionRespond) {
 	cacheAll(ctx, response)
 	if dev.auctions == nil {
 		dev.auctions = make([]AuctionStruct, 0)
@@ -58,11 +58,11 @@ func (dev dev) Add(ctx *routeUtils.RouteContext, response *AuctionRespond) {
 	dev.auctions = append(dev.auctions, response.Auctions...)
 }
 
-func (dev dev) Finish(ctx *routeUtils.RouteContext) {
+func (dev *dev) Finish(ctx *routeUtils.RouteContext) {
 	_ = ctx.AddToCache("auctions", "cached", "<3", dev.Duration)
 }
 
-func (dev dev) GetAuctions(ctx *routeUtils.RouteContext) ([]AuctionStruct, error) {
+func (dev *dev) GetAuctions(ctx *routeUtils.RouteContext) ([]AuctionStruct, error) {
 	fmt.Println("Using dev mode, PLEASE DONT USE IN PROD :sob:")
 	if ctx.IsCached("auctions", "cached") {
 		fmt.Println("Retrieving previously cached data")
@@ -73,18 +73,18 @@ func (dev dev) GetAuctions(ctx *routeUtils.RouteContext) ([]AuctionStruct, error
 		return *data, nil
 	}
 
-	err := fetch(*ctx, &dev)
+	err := fetch(*ctx, dev)
 	if err != nil {
 		return nil, err
 	}
 	return dev.auctions, nil
 }
 
-func (dev dev) Debug(page int) {
+func (dev *dev) Debug(page int) {
 	fmt.Printf("Fetching page %d\n", page)
 }
 
-func (dev dev) readCached(ctx *routeUtils.RouteContext) (*[]AuctionStruct, error) {
+func (dev *dev) readCached(ctx *routeUtils.RouteContext) (*[]AuctionStruct, error) {
 	auctions, err := ctx.GetAll("auctions.index")
 	if err != nil {
 		return nil, err
@@ -113,9 +113,9 @@ func GetCachedAuctions(ctx *routeUtils.RouteContext) (*string, error) {
 func FetchAll(ctx *routeUtils.RouteContext) error {
 	var opMode opMode
 	if utils.Debug {
-		opMode = dev{}
+		opMode = &dev{}
 	} else {
-		opMode = prod{}
+		opMode = &prod{}
 	}
 
 	auctions, err := opMode.GetAuctions(ctx)
