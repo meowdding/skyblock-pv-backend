@@ -125,6 +125,10 @@ func main() {
 	http.HandleFunc("/status/{id}", create(RequestRoute{
 		Get: authenticated(routes.GetStatus),
 	}))
+	http.HandleFunc("/auctions/{profile}", create(RequestRoute{
+		Get: authenticated(routes.GetActiveProfileAuctions),
+	}))
+
 	http.HandleFunc("/auctions", create(RequestRoute{
 		Get: public(routes.GetLbin),
 	}))

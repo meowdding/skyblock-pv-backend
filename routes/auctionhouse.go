@@ -1,6 +1,7 @@
 package routes
 
 import (
+	"io"
 	"net/http"
 	"skyblock-pv-backend/auctions"
 	"skyblock-pv-backend/routes/utils"
@@ -12,7 +13,6 @@ func GetLbin(ctx utils.RouteContext, res http.ResponseWriter, _ *http.Request) {
 		res.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-	res.WriteHeader(http.StatusOK)
-	res.Header().Set("Content-Type", "application/json; charset=utf-8")
-	res.Write([]byte(*cachedData))
+	res.Header().Set("Content-Type", "application/json")
+	_, _ = io.WriteString(res, *cachedData)
 }

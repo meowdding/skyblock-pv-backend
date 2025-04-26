@@ -32,7 +32,7 @@ func GetAuthenticatedContext(ctx RouteContext, data string) *AuthenticationConte
 	}
 
 	sub, err := token.Claims.GetSubject()
-	bypass := token.Claims.(jwt.MapClaims)["bypass"].(bool)
+	bypass, ok := token.Claims.(jwt.MapClaims)["bypass"].(bool)
 
 	if err != nil {
 		return nil
@@ -40,6 +40,6 @@ func GetAuthenticatedContext(ctx RouteContext, data string) *AuthenticationConte
 
 	return &AuthenticationContext{
 		Requester:   sub,
-		BypassCache: bypass,
+		BypassCache: bypass && ok,
 	}
 }
