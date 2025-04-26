@@ -9,7 +9,7 @@ import (
 )
 
 const museumCacheDuration = 5 * time.Minute
-const museumCacheName = "garden"
+const museumCacheName = "museum"
 const museumHypixelPath = "/v2/skyblock/museum"
 
 func GetMuseum(ctx utils.RouteContext, authentication utils.AuthenticationContext, res http.ResponseWriter, req *http.Request) {
