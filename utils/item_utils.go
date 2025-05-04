@@ -56,5 +56,15 @@ func (item Item) GetSbId() *string {
 		}
 		data = fmt.Sprintf("pet:%s:%s", petData.Type, petData.Tier)
 	}
+	if data == "RUNE" {
+		runes := tag.Get("runes").AsCompound().GetValues()
+		if len(runes) != 1 {
+			return nil
+		}
+		for id, tier := range runes {
+			data = fmt.Sprintf("rune:%s:%d", id, tier.AsInt())
+			break
+		}
+	}
 	return &data
 }

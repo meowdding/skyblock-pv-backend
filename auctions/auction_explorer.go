@@ -139,7 +139,6 @@ func calculateAverage(auctions []AuctionStruct) *map[string]ItemInfo {
 	var items = make(map[string][]int64)
 
 	fmt.Printf("Searching %d auctions\n", len(auctions))
-	pets := make([]AuctionStruct, 0)
 	for _, auction := range auctions {
 		if !auction.Bin {
 			continue
@@ -150,13 +149,6 @@ func calculateAverage(auctions []AuctionStruct) *map[string]ItemInfo {
 		}
 		sbId := item.GetSbId()
 		if sbId == nil {
-			continue
-		}
-		if *sbId == "RUNE" {
-			continue // not supported atm :)
-		}
-		if *sbId == "PET" {
-			pets = append(pets, auction)
 			continue
 		}
 		priceList := items[*sbId]

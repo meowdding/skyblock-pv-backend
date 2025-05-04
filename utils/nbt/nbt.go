@@ -324,6 +324,10 @@ func (compound Compound) Get(name string) *WrappedTag {
 	return &tag
 }
 
+func (compound Compound) GetValues() map[string]WrappedTag {
+	return compound.backing
+}
+
 type List struct {
 	values   []Tag
 	DataType byte
