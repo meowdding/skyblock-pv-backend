@@ -56,7 +56,7 @@ func (item Item) GetSbId() *string {
 		}
 		data = fmt.Sprintf("pet:%s:%s", petData.Type, petData.Tier)
 	}
-	if data == "RUNE" {
+	if data == "RUNE" || data == "UNIQUE_RUNE" {
 		runes := tag.Get("runes").AsCompound().GetValues()
 		if len(runes) != 1 {
 			return nil
