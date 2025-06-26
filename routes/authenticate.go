@@ -22,18 +22,24 @@ func Authenticate(ctx utils.RouteContext, res http.ResponseWriter, req *http.Req
 	if username == "" || server == "" {
 		res.WriteHeader(http.StatusBadRequest)
 	} else {
-		r, err := http.Get(fmt.Sprintf(mojangAuthUrl, username, server))
+		req, err := http.NewRequest(
+			"GET",
+			fmt.Sprintf(mojangAuthUrl, username, server),
+			http.NoBody,
+		)
+		req.Close = true
 
 		if err != nil {
-			var status string
-			if r != nil {
-				status = r.Status
-			} else {
-				status = "unknown"
-			}
-
 			res.WriteHeader(http.StatusInternalServerError)
-			fmt.Printf("Failed to authenticate: %s %v\n", status, err)
+			fmt.Printf("Failed to authenticate: %v\n", err)
+			return
+		}
+
+		r, err := http.DefaultClient.Do(req)
+
+		if err != nil {
+			res.WriteHeader(http.StatusInternalServerError)
+			fmt.Printf("Failed to authenticate: %v\n", err)
 			return
 		}
 
