@@ -1,12 +1,10 @@
 package routes
 
 import (
-	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
 	"skyblock-pv-backend/routes/utils"
-	"slices"
 )
 
 const mojangAuthUrl = "https://sessionserver.mojang.com/session/minecraft/hasJoined?username=%s&serverId=%s"
