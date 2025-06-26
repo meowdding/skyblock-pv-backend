@@ -22,6 +22,7 @@ func Authenticate(ctx utils.RouteContext, res http.ResponseWriter, req *http.Req
 	if username == "" || server == "" {
 		res.WriteHeader(http.StatusBadRequest)
 	} else {
+		client := &http.Client{}
 		req, err := http.NewRequest(
 			"GET",
 			fmt.Sprintf(mojangAuthUrl, username, server),
@@ -35,7 +36,7 @@ func Authenticate(ctx utils.RouteContext, res http.ResponseWriter, req *http.Req
 			return
 		}
 
-		r, err := http.DefaultClient.Do(req)
+		r, err := client.Do(req)
 
 		if err != nil {
 			res.WriteHeader(http.StatusInternalServerError)
