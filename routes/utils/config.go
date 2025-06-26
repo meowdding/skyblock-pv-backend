@@ -14,6 +14,7 @@ type Config struct {
 	Port          string   `json:"port"`
 	Admins        []string `json:"admins"`
 	DevMode       bool     `json:"dev_mode"`
+	NoAuth        bool     `json:"no_auth"`
 }
 
 func NewConfig() Config {
