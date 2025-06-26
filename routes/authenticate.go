@@ -25,8 +25,15 @@ func Authenticate(ctx utils.RouteContext, res http.ResponseWriter, req *http.Req
 		r, err := http.Get(fmt.Sprintf(mojangAuthUrl, username, server))
 
 		if err != nil {
+			var status string
+			if r != nil {
+				status = r.Status
+			} else {
+				status = "unknown"
+			}
+
 			res.WriteHeader(http.StatusInternalServerError)
-			fmt.Printf("Failed to authenticate: %v\n", err)
+			fmt.Printf("Failed to authenticate: %s %v\n", status, err)
 			return
 		}
 
