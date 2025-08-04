@@ -21,7 +21,7 @@ func Authenticate(ctx utils.RouteContext, res http.ResponseWriter, req *http.Req
 
 	if username == "" || server == "" {
 		res.WriteHeader(http.StatusBadRequest)
-	} else {
+	} else if !ctx.Config.NoAuth {
 		r, err := http.Get(fmt.Sprintf(mojangAuthUrl, username, server))
 
 		if err != nil {
@@ -54,6 +54,14 @@ func Authenticate(ctx utils.RouteContext, res http.ResponseWriter, req *http.Req
 			} else {
 				_, _ = io.WriteString(res, token)
 			}
+		}
+	} else {
+		token, err := utils.CreateAuthenticationKey(ctx, "00000000000000000000000000000000", false)
+		if err != nil {
+			res.WriteHeader(http.StatusInternalServerError)
+			fmt.Printf("Failed to create authentication key: %v\n", err)
+		} else {
+			_, _ = io.WriteString(res, token)
 		}
 	}
 }

@@ -34,6 +34,10 @@ func GetAuthenticatedContext(ctx RouteContext, data string) *AuthenticationConte
 	sub, err := token.Claims.GetSubject()
 	bypass, ok := token.Claims.(jwt.MapClaims)["bypass"].(bool)
 
+	if sub == "00000000000000000000000000000000" && !ctx.Config.NoAuth {
+		return nil
+	}
+
 	if err != nil {
 		return nil
 	}
