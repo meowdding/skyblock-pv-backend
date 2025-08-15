@@ -10,6 +10,10 @@ type Item struct {
 	*nbt.Compound
 }
 
+func (item Item) Count() int8 {
+	return item.Compound.Get("Count").AsByteOrDefault(1)
+}
+
 type PetData struct {
 	Type        string  `json:"type"`
 	Exp         float64 `json:"exp"`

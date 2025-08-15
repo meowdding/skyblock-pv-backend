@@ -349,6 +349,13 @@ func (tag WrappedTag) AsByte() int8 {
 	return 0
 }
 
+func (tag WrappedTag) AsByteOrDefault(defaultValue int8) int8 {
+	if tag.tagType == TAG_BYTE {
+		return int8(tag.Tag.(byte))
+	}
+	return defaultValue
+}
+
 func (tag WrappedTag) AsShort() int16 {
 	if tag.tagType == TAG_SHORT {
 		return tag.Tag.(int16)

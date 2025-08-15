@@ -13,6 +13,10 @@ import (
 	"time"
 )
 
+const AuthCacheVersion = 1
+
+func withCacheVersion(str string) string { return fmt.Sprintf("%s_%d", str, AuthCacheVersion) }
+
 type opMode interface {
 	GetAuctions(ctx *routeUtils.RouteContext) ([]AuctionStruct, error)
 	Add(ctx *routeUtils.RouteContext, respond *AuctionRespond)
@@ -59,12 +63,12 @@ func (dev *dev) Add(ctx *routeUtils.RouteContext, response *AuctionRespond) {
 }
 
 func (dev *dev) Finish(ctx *routeUtils.RouteContext) {
-	_ = ctx.AddToCache("auctions", "cached", "<3", dev.Duration)
+	_ = ctx.AddToCache(withCacheVersion("auctions"), "cached", "<3", dev.Duration)
 }
 
 func (dev *dev) GetAuctions(ctx *routeUtils.RouteContext) ([]AuctionStruct, error) {
 	fmt.Println("Using dev mode, PLEASE DONT USE IN PROD :sob:")
-	if ctx.IsCached("auctions", "cached") {
+	if ctx.IsCached(withCacheVersion("auctions"), "cached") {
 		fmt.Println("Retrieving previously cached data")
 		data, err := dev.readCached(ctx)
 		if err != nil {
@@ -85,7 +89,7 @@ func (dev *dev) Debug(page int) {
 }
 
 func (dev *dev) readCached(ctx *routeUtils.RouteContext) (*[]AuctionStruct, error) {
-	auctions, err := ctx.GetAll("auctions.index")
+	auctions, err := ctx.GetAll(withCacheVersion("auctions.index"))
 	if err != nil {
 		return nil, err
 	}
@@ -103,7 +107,7 @@ func (dev *dev) readCached(ctx *routeUtils.RouteContext) (*[]AuctionStruct, erro
 }
 
 func GetCachedAuctions(ctx *routeUtils.RouteContext) (*string, error) {
-	data, err := ctx.GetFromCache(nil, "auctions", "cached")
+	data, err := ctx.GetFromCache(nil, withCacheVersion("auctions"), "cached")
 	if err != nil {
 		return nil, err
 	}
@@ -129,7 +133,7 @@ func FetchAll(ctx *routeUtils.RouteContext) error {
 		return err
 	}
 
-	_ = ctx.AddToCache("auctions", "cached", data, time.Hour*2)
+	_ = ctx.AddToCache(withCacheVersion("auctions"), "cached", data, time.Hour*2)
 
 	fmt.Println("Finished updating!")
 	return nil
@@ -156,7 +160,7 @@ func calculateAverage(auctions []AuctionStruct) *map[string]ItemInfo {
 			priceList = make([]int64, 0)
 		}
 
-		items[*sbId] = append(priceList, auction.StartingBid)
+		items[*sbId] = append(priceList, auction.StartingBid/int64(item.Count()))
 	}
 
 	actualItems := make(map[string]ItemInfo)
@@ -214,7 +218,7 @@ func cache(ctx routeUtils.RouteContext, auction *AuctionStruct) {
 		println(err.Error())
 		return
 	}
-	_ = ctx.AddToCache("auctions.index", auction.Id, data, time.Hour*7)
+	_ = ctx.AddToCache(withCacheVersion("auctions.index"), auction.Id, data, time.Hour*7)
 }
 
 func fetch(ctx routeUtils.RouteContext, mode opMode) error {
