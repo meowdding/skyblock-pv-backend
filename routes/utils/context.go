@@ -60,6 +60,17 @@ func (ctx *RouteContext) IsCached(path string, key string) bool {
 	return result.Err() == nil
 }
 
+func (ctx *RouteContext) GetTtlMilli(path string, key string) (time.Duration, error) {
+	if ctx.redis == nil {
+		return -1, nil
+	}
+	result := ctx.redis.PTTL(context.Background(), createKey(path, key))
+	if result.Err() != nil {
+		return -1, result.Err()
+	}
+	return result.Val() / time.Millisecond, nil
+}
+
 func (ctx *RouteContext) Delete(path string, key string) error {
 	if ctx.redis == nil {
 		return fmt.Errorf("not found")

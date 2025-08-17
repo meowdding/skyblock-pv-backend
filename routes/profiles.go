@@ -5,6 +5,7 @@ import (
 	"io"
 	"net/http"
 	"skyblock-pv-backend/routes/utils"
+	"strconv"
 	"time"
 )
 
@@ -31,7 +32,15 @@ func GetProfiles(ctx utils.RouteContext, authentication utils.AuthenticationCont
 		}
 	}
 
+	milli, err := ctx.GetTtlMilli(profileCacheName, playerId)
+	if err != nil {
+		res.WriteHeader(http.StatusInternalServerError)
+		fmt.Printf("Failed to fetch or cache profiles: %v\n", err)
+		return
+	}
+
 	res.Header().Set("Content-Type", "application/json")
 	res.Header().Set("Cache-Control", fmt.Sprintf("max-age=%d", int(profileCacheDuration.Seconds())))
+	res.Header().Set("X-Backend-Expire-In", strconv.FormatInt(int64(milli), 10))
 	_, _ = io.WriteString(res, result)
 }
