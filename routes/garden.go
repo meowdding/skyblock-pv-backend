@@ -26,7 +26,10 @@ func GetGarden(ctx utils.RouteContext, authentication utils.AuthenticationContex
 			if err == nil {
 				err = ctx.AddToCache(gardenCacheName, profileId, profiles, gardenCacheDuration)
 			} else {
-				err = ctx.AddToErrorCache(gardenCacheName, profileId, gardenFailedCacheDuration)
+				cacheError := ctx.AddToErrorCache(gardenCacheName, profileId, gardenFailedCacheDuration)
+				if cacheError != nil {
+					fmt.Printf("Failed to cache garden error: %v\n", cacheError)
+				}
 			}
 
 			if err != nil || profiles == nil {

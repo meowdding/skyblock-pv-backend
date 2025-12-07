@@ -26,7 +26,10 @@ func GetStatus(ctx utils.RouteContext, authentication utils.AuthenticationContex
 			if err == nil {
 				err = ctx.AddToCache(statusCacheName, playerId, profiles, statusCacheDuration)
 			} else {
-				err = ctx.AddToErrorCache(statusCacheName, playerId, statusFailedCacheDuration)
+				cacheError := ctx.AddToErrorCache(statusCacheName, playerId, statusFailedCacheDuration)
+				if cacheError != nil {
+					fmt.Printf("Failed to cache status error: %v\n", cacheError)
+				}
 			}
 
 			if err != nil {

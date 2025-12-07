@@ -26,7 +26,10 @@ func GetMuseum(ctx utils.RouteContext, authentication utils.AuthenticationContex
 			if err == nil {
 				err = ctx.AddToCache(museumCacheName, profileId, profiles, museumCacheDuration)
 			} else {
-				err = ctx.AddToErrorCache(museumCacheName, profileId, museumFailedCacheDuration)
+				cacheError := ctx.AddToErrorCache(museumCacheName, profileId, museumFailedCacheDuration)
+				if cacheError != nil {
+					fmt.Printf("Failed to cache meseum error: %v\n", cacheError)
+				}
 			}
 
 			if err != nil || profiles == nil {

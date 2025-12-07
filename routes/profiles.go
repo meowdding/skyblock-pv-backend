@@ -27,7 +27,10 @@ func GetProfiles(ctx utils.RouteContext, authentication utils.AuthenticationCont
 			if err == nil {
 				err = ctx.AddToCache(profileCacheName, playerId, profiles, profileCacheDuration)
 			} else {
-				err = ctx.AddToErrorCache(profileCacheName, playerId, profileFailedCacheDuration)
+				cacheError := ctx.AddToErrorCache(profileCacheName, playerId, profileFailedCacheDuration)
+				if cacheError != nil {
+					fmt.Printf("Failed to cache profiles error: %v\n", cacheError)
+				}
 			}
 
 			if err != nil || profiles == nil {
