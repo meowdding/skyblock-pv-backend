@@ -9,6 +9,7 @@ import (
 )
 
 const gardenCacheDuration = 10 * time.Minute
+const gardenFailedCacheDuration = 5 * time.Minute
 const gardenCacheName = "garden"
 const gardenHypixelPath = "/v2/skyblock/garden"
 
@@ -17,17 +18,24 @@ func GetGarden(ctx utils.RouteContext, authentication utils.AuthenticationContex
 	result, err := ctx.GetFromCache(&authentication, gardenCacheName, profileId)
 
 	if err != nil {
-		profiles, err := utils.GetFromHypixel(ctx, fmt.Sprintf("%s?profile=%s", gardenHypixelPath, profileId), true)
-		if err == nil {
-			err = ctx.AddToCache(gardenCacheName, profileId, profiles, gardenCacheDuration)
-		}
-
-		if err != nil {
+		if ctx.HasErrorCached(gardenCacheName, profileId) {
 			res.WriteHeader(http.StatusInternalServerError)
-			fmt.Printf("Failed to fetch or cache garden: %v\n", err)
 			return
 		} else {
-			result = *profiles
+			profiles, err := utils.GetFromHypixel(ctx, fmt.Sprintf("%s?profile=%s", gardenHypixelPath, profileId), true)
+			if err == nil {
+				err = ctx.AddToCache(gardenCacheName, profileId, profiles, gardenCacheDuration)
+			} else {
+				err = ctx.AddToErrorCache(gardenCacheName, profileId, gardenFailedCacheDuration)
+			}
+
+			if err != nil {
+				res.WriteHeader(http.StatusInternalServerError)
+				fmt.Printf("Failed to fetch or cache garden: %v\n", err)
+				return
+			} else {
+				result = *profiles
+			}
 		}
 	}
 

@@ -9,6 +9,7 @@ import (
 )
 
 const playerCacheDuration = 12 * time.Hour
+const playerFailedCacheDuration = 5 * time.Minute
 const playerCacheName = "player"
 const playerHypixelPath = "/v2/player"
 
@@ -17,17 +18,24 @@ func GetPlayer(ctx utils.RouteContext, authentication utils.AuthenticationContex
 	result, err := ctx.GetFromCache(&authentication, playerCacheName, playerId)
 
 	if err != nil {
-		profiles, err := utils.GetFromHypixel(ctx, fmt.Sprintf("%s?uuid=%s", playerHypixelPath, playerId), true)
-		if err == nil {
-			err = ctx.AddToCache(playerCacheName, playerId, profiles, playerCacheDuration)
-		}
-
-		if err != nil {
+		if ctx.HasErrorCached(playerCacheName, playerId) {
 			res.WriteHeader(http.StatusInternalServerError)
-			fmt.Printf("Failed to fetch or cache player: %v\n", err)
 			return
 		} else {
-			result = *profiles
+			profiles, err := utils.GetFromHypixel(ctx, fmt.Sprintf("%s?uuid=%s", playerHypixelPath, playerId), true)
+			if err == nil {
+				err = ctx.AddToCache(playerCacheName, playerId, profiles, playerCacheDuration)
+			} else {
+				err = ctx.AddToErrorCache(playerCacheName, playerId, playerFailedCacheDuration)
+			}
+
+			if err != nil {
+				res.WriteHeader(http.StatusInternalServerError)
+				fmt.Printf("Failed to fetch or cache player: %v\n", err)
+				return
+			} else {
+				result = *profiles
+			}
 		}
 	}
 

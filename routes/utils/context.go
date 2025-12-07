@@ -60,6 +60,14 @@ func (ctx *RouteContext) IsCached(path string, key string) bool {
 	return result.Err() == nil
 }
 
+func (ctx *RouteContext) HasErrorCached(path string, key string) bool {
+	if ctx.redis == nil {
+		return false
+	}
+	result := ctx.redis.Get(context.Background(), createKey(path, createKey(key, "error")))
+	return result.Err() == nil
+}
+
 func (ctx *RouteContext) GetTtlMilli(path string, key string) (time.Duration, error) {
 	if ctx.redis == nil {
 		return -1, nil
@@ -102,5 +110,13 @@ func (ctx *RouteContext) AddToCache(path string, key string, value interface{}, 
 		return nil
 	}
 	result := ctx.redis.Set(context.Background(), createKey(path, key), value, duration)
+	return result.Err()
+}
+
+func (ctx *RouteContext) AddToErrorCache(path string, key string, duration time.Duration) error {
+	if ctx.redis == nil {
+		return nil
+	}
+	result := ctx.redis.Set(context.Background(), createKey(path, createKey(key, "error")), "", duration)
 	return result.Err()
 }

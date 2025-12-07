@@ -10,6 +10,7 @@ import (
 )
 
 const profileCacheDuration = 5 * time.Minute
+const profileFailedCacheDuration = 3 * time.Minute
 const profileCacheName = "profiles"
 const profileHypixelPath = "/v2/skyblock/profiles"
 
@@ -18,17 +19,24 @@ func GetProfiles(ctx utils.RouteContext, authentication utils.AuthenticationCont
 	result, err := ctx.GetFromCache(&authentication, profileCacheName, playerId)
 
 	if err != nil {
-		profiles, err := utils.GetFromHypixel(ctx, fmt.Sprintf("%s?uuid=%s", profileHypixelPath, playerId), true)
-		if err == nil {
-			err = ctx.AddToCache(profileCacheName, playerId, profiles, profileCacheDuration)
-		}
-
-		if err != nil {
+		if ctx.HasErrorCached(profileCacheName, playerId) {
 			res.WriteHeader(http.StatusInternalServerError)
-			fmt.Printf("Failed to fetch or cache profiles: %v\n", err)
 			return
 		} else {
-			result = *profiles
+			profiles, err := utils.GetFromHypixel(ctx, fmt.Sprintf("%s?uuid=%s", profileHypixelPath, playerId), true)
+			if err == nil {
+				err = ctx.AddToCache(profileCacheName, playerId, profiles, profileCacheDuration)
+			} else {
+				err = ctx.AddToErrorCache(profileCacheName, playerId, profileFailedCacheDuration)
+			}
+
+			if err != nil {
+				res.WriteHeader(http.StatusInternalServerError)
+				fmt.Printf("Failed to fetch or cache profiles: %v\n", err)
+				return
+			} else {
+				result = *profiles
+			}
 		}
 	}
 
