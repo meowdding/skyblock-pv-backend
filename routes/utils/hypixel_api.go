@@ -18,7 +18,9 @@ func GetFromHypixel(ctx RouteContext, path string, requiresAuth bool) (*string, 
 	}
 
 	if requiresAuth {
-		req.Header.Set("API-Key", ctx.Config.HypixelKey)
+		lastChar := path[len(path)-1]
+		key := ctx.Config.HypixelKey[int(lastChar)%len(ctx.Config.HypixelKey)]
+		req.Header.Set("API-Key", key)
 	}
 
 	client := http.Client{}

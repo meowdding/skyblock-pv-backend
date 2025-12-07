@@ -10,7 +10,7 @@ type Config struct {
 	RedisUsername string   `json:"redis_username"`
 	RedisPassword string   `json:"redis_password"`
 	JwtToken      string   `json:"jwt_token"`
-	HypixelKey    string   `json:"hypixel_key"`
+	HypixelKey    []string `json:"hypixel_key"`
 	Port          string   `json:"port"`
 	Admins        []string `json:"admins"`
 	DevMode       bool     `json:"dev_mode"`
