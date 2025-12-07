@@ -34,7 +34,7 @@ func GetPlayer(ctx utils.RouteContext, authentication utils.AuthenticationContex
 
 			if err != nil || profiles == nil {
 				res.WriteHeader(http.StatusInternalServerError)
-				fmt.Printf("Failed to fetch or cache player from user %s: %v\n", authentication.Requester, err)
+				fmt.Printf("[/player/%s] User '%s' failed to fetch or cache player: %v\n", playerId, authentication.Requester, err)
 				return
 			} else {
 				result = *profiles

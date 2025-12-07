@@ -34,7 +34,7 @@ func GetMuseum(ctx utils.RouteContext, authentication utils.AuthenticationContex
 
 			if err != nil || profiles == nil {
 				res.WriteHeader(http.StatusInternalServerError)
-				fmt.Printf("Failed to fetch or cache meseum from user %s: %v\n", authentication.Requester, err)
+				fmt.Printf("[/museum/%s] User '%s' failed to fetch or cache museum: %v\n", profileId, authentication.Requester, err)
 				return
 			} else {
 				result = *profiles
