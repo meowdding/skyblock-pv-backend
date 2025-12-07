@@ -35,7 +35,7 @@ func GetProfiles(ctx utils.RouteContext, authentication utils.AuthenticationCont
 
 			if err != nil || profiles == nil {
 				res.WriteHeader(http.StatusInternalServerError)
-				fmt.Printf("Failed to fetch or cache profiles: %v\n", err)
+				fmt.Printf("Failed to fetch or cache profiles from user %s: %v\n", authentication.Requester, err)
 				return
 			} else {
 				result = *profiles

@@ -34,7 +34,7 @@ func GetGarden(ctx utils.RouteContext, authentication utils.AuthenticationContex
 
 			if err != nil || profiles == nil {
 				res.WriteHeader(http.StatusInternalServerError)
-				fmt.Printf("Failed to fetch or cache garden: %v\n", err)
+				fmt.Printf("Failed to fetch or cache garden from user %s: %v\n", authentication.Requester, err)
 				return
 			} else {
 				result = *profiles
