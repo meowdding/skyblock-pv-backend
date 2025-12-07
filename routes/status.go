@@ -9,6 +9,7 @@ import (
 )
 
 const statusCacheDuration = 5 * time.Minute
+const highProfileStatusCacheDuration = 15 * time.Minute
 const statusFailedCacheDuration = 3 * time.Minute
 const statusCacheName = "status"
 const statusHypixelPath = "/v2/status"
@@ -24,7 +25,11 @@ func GetStatus(ctx utils.RouteContext, authentication utils.AuthenticationContex
 		} else {
 			profiles, err := utils.GetFromHypixel(ctx, fmt.Sprintf("%s?uuid=%s", statusHypixelPath, playerId), true)
 			if err == nil {
-				err = ctx.AddToCache(statusCacheName, playerId, profiles, statusCacheDuration)
+				cacheDuration := statusCacheDuration
+				if ctx.IsHighProfileAccount(playerId) {
+					cacheDuration = highProfileStatusCacheDuration
+				}
+				err = ctx.AddToCache(statusCacheName, playerId, profiles, cacheDuration)
 			} else {
 				cacheError := ctx.AddToErrorCache(statusCacheName, playerId, statusFailedCacheDuration)
 				if cacheError != nil {

@@ -10,6 +10,7 @@ import (
 )
 
 const profileCacheDuration = 5 * time.Minute
+const highProfileCacheDuration = 15 * time.Minute
 const profileFailedCacheDuration = 3 * time.Minute
 const profileCacheName = "profiles"
 const profileHypixelPath = "/v2/skyblock/profiles"
@@ -25,7 +26,11 @@ func GetProfiles(ctx utils.RouteContext, authentication utils.AuthenticationCont
 		} else {
 			profiles, err := utils.GetFromHypixel(ctx, fmt.Sprintf("%s?uuid=%s", profileHypixelPath, playerId), true)
 			if err == nil {
-				err = ctx.AddToCache(profileCacheName, playerId, profiles, profileCacheDuration)
+				cacheDuration := profileCacheDuration
+				if ctx.IsHighProfileAccount(playerId) {
+					cacheDuration = highProfileCacheDuration
+				}
+				err = ctx.AddToCache(profileCacheName, playerId, profiles, cacheDuration)
 			} else {
 				cacheError := ctx.AddToErrorCache(profileCacheName, playerId, profileFailedCacheDuration)
 				if cacheError != nil {

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/redis/go-redis/v9"
+	"slices"
 	"time"
 )
 
@@ -24,6 +25,13 @@ func NewRouteContext() RouteContext {
 	}
 
 	return RouteContext{client, &config}
+}
+
+func (ctx *RouteContext) IsHighProfileAccount(playerId string) bool {
+	if ctx.Config == nil {
+		return false
+	}
+	return slices.Contains(ctx.Config.HighProfileAccounts, playerId)
 }
 
 func (ctx *RouteContext) GetAll(path string) ([]string, error) {
