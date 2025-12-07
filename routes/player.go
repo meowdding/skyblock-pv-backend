@@ -29,7 +29,7 @@ func GetPlayer(ctx utils.RouteContext, authentication utils.AuthenticationContex
 				err = ctx.AddToErrorCache(playerCacheName, playerId, playerFailedCacheDuration)
 			}
 
-			if err != nil {
+			if err != nil || profiles == nil {
 				res.WriteHeader(http.StatusInternalServerError)
 				fmt.Printf("Failed to fetch or cache player: %v\n", err)
 				return

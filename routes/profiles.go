@@ -30,7 +30,7 @@ func GetProfiles(ctx utils.RouteContext, authentication utils.AuthenticationCont
 				err = ctx.AddToErrorCache(profileCacheName, playerId, profileFailedCacheDuration)
 			}
 
-			if err != nil {
+			if err != nil || profiles == nil {
 				res.WriteHeader(http.StatusInternalServerError)
 				fmt.Printf("Failed to fetch or cache profiles: %v\n", err)
 				return
