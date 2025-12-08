@@ -138,6 +138,9 @@ func main() {
 	http.HandleFunc("/auctions", create(RequestRoute{
 		Get: public(routes.GetLbin),
 	}))
+	http.HandleFunc("/_ratelimit", create(RequestRoute{
+		Get: authenticated(routes.GetRateLimit),
+	}))
 
 	fmt.Printf("Listening on 0.0.0.0:%s\n", routeContext.Config.Port)
 	err := http.ListenAndServe(fmt.Sprintf(":%s", routeContext.Config.Port), nil)

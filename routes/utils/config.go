@@ -20,7 +20,8 @@ type Config struct {
 }
 
 type EndpointsConfig struct {
-	Players bool `json:"players"`
+	Players   bool `json:"players"`
+	RateLimit bool `json:"rate_limit"`
 }
 
 func NewConfig() Config {

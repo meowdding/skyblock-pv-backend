@@ -4,7 +4,24 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strconv"
 )
+
+var RateLimitRemaining = 0
+var RateLimitReset = 0
+
+func updateRateLimit(res *http.Response) {
+	remaining := res.Header.Get("RateLimit-Remaining")
+	reset := res.Header.Get("RateLimit-Reset")
+
+	if val, err := strconv.Atoi(remaining); err == nil {
+		RateLimitRemaining = val
+	}
+
+	if val, err := strconv.Atoi(reset); err == nil {
+		RateLimitReset = val
+	}
+}
 
 func GetFromHypixel(ctx RouteContext, path string, requiresAuth bool) (*string, error) {
 	req, err := http.NewRequest(
@@ -36,6 +53,8 @@ func GetFromHypixel(ctx RouteContext, path string, requiresAuth bool) (*string, 
 	if res.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("failed to fetch data: %s", res.Status)
 	}
+
+	updateRateLimit(res)
 
 	data, err := io.ReadAll(res.Body)
 
