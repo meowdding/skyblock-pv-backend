@@ -26,7 +26,7 @@ func Authenticate(ctx utils.RouteContext, res http.ResponseWriter, req *http.Req
 
 		if err != nil {
 			res.WriteHeader(http.StatusInternalServerError)
-			fmt.Printf("Failed to authenticate: %v\n", err)
+			fmt.Printf("Authentication failed for user '%s' with error: %v\n", username, err)
 			return
 		}
 
@@ -34,7 +34,7 @@ func Authenticate(ctx utils.RouteContext, res http.ResponseWriter, req *http.Req
 
 		if r.StatusCode != http.StatusOK {
 			res.WriteHeader(http.StatusUnauthorized)
-			fmt.Printf("Authentication failed: %s\n", r.Status)
+			fmt.Printf("Authentication failed for user '%s' with status code %d\n", username, r.StatusCode)
 			return
 		}
 
