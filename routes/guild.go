@@ -47,11 +47,11 @@ func GetGuild(ctx utils.RouteContext, authentication utils.AuthenticationContext
 
 	if err != nil {
 		guild, err := utils.GetFromHypixel(ctx, fmt.Sprintf("%s?player=%s", guildHypixelPath, playerId), true)
-		if err == nil {
+		if err == nil && guild != nil {
 			err = cacheGuild(ctx, *guild)
 		}
 
-		if err != nil {
+		if err != nil || guild == nil {
 			res.WriteHeader(http.StatusInternalServerError)
 			fmt.Printf("Failed to fetch or cache guild: %v\n", err)
 			return

@@ -28,7 +28,7 @@ func GetPlayer(ctx utils.RouteContext, authentication utils.AuthenticationContex
 				return
 			} else {
 				profiles, err := utils.GetFromHypixel(ctx, fmt.Sprintf("%s?uuid=%s", playerHypixelPath, playerId), true)
-				if err == nil {
+				if err == nil && profiles != nil {
 					err = ctx.AddToCache(playerCacheName, playerId, profiles, playerCacheDuration)
 				} else {
 					cacheError := ctx.AddToErrorCache(playerCacheName, playerId, playerFailedCacheDuration)

@@ -23,7 +23,7 @@ func GetMuseum(ctx utils.RouteContext, authentication utils.AuthenticationContex
 			return
 		} else {
 			profiles, err := utils.GetFromHypixel(ctx, fmt.Sprintf("%s?profile=%s", museumHypixelPath, profileId), true)
-			if err == nil {
+			if err == nil && profiles != nil {
 				err = ctx.AddToCache(museumCacheName, profileId, profiles, museumCacheDuration)
 			} else {
 				cacheError := ctx.AddToErrorCache(museumCacheName, profileId, museumFailedCacheDuration)

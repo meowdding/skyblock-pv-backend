@@ -24,7 +24,7 @@ func GetStatus(ctx utils.RouteContext, authentication utils.AuthenticationContex
 			return
 		} else {
 			profiles, err := utils.GetFromHypixel(ctx, fmt.Sprintf("%s?uuid=%s", statusHypixelPath, playerId), true)
-			if err == nil {
+			if err == nil && profiles != nil {
 				cacheDuration := statusCacheDuration
 				if ctx.IsHighProfileAccount(playerId) {
 					cacheDuration = highProfileStatusCacheDuration
@@ -37,7 +37,7 @@ func GetStatus(ctx utils.RouteContext, authentication utils.AuthenticationContex
 				}
 			}
 
-			if err != nil {
+			if err != nil || profiles == nil {
 				res.WriteHeader(http.StatusInternalServerError)
 				fmt.Printf(
 					"[/status/%s] User '%s' with user-agent '%s' failed to fetch or cache status: %v\n",

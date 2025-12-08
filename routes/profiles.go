@@ -25,7 +25,7 @@ func GetProfiles(ctx utils.RouteContext, authentication utils.AuthenticationCont
 			return
 		} else {
 			profiles, err := utils.GetFromHypixel(ctx, fmt.Sprintf("%s?uuid=%s", profileHypixelPath, playerId), true)
-			if err == nil {
+			if err == nil && profiles != nil {
 				cacheDuration := profileCacheDuration
 				if ctx.IsHighProfileAccount(playerId) {
 					cacheDuration = highProfileCacheDuration

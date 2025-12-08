@@ -50,7 +50,9 @@ func GetFromHypixel(ctx RouteContext, path string, requiresAuth bool) (*string, 
 
 	defer res.Body.Close()
 
-	if res.StatusCode != http.StatusOK {
+	if res.StatusCode == http.StatusNotFound {
+		return nil, nil
+	} else if res.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("failed to fetch data: %s", res.Status)
 	}
 

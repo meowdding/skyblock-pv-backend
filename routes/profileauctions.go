@@ -19,7 +19,7 @@ func GetActiveProfileAuctions(ctx utils.RouteContext, authentication utils.Authe
 
 	if err != nil {
 		auctions, err := utils.GetFromHypixel(ctx, fmt.Sprintf("%s?profile=%s", playerAuctionsHypixelPath, profileId), true)
-		if err == nil {
+		if err == nil && auctions != nil {
 			transformedAuctions, err := transformAuctions(*auctions)
 			auctions = &transformedAuctions
 
@@ -28,7 +28,7 @@ func GetActiveProfileAuctions(ctx utils.RouteContext, authentication utils.Authe
 			}
 		}
 
-		if err != nil {
+		if err != nil || auctions == nil {
 			res.WriteHeader(http.StatusInternalServerError)
 			fmt.Printf("Failed to fetch or cache player active auctions: %v\n", err)
 			return

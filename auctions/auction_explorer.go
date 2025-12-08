@@ -249,6 +249,9 @@ func fetchPage(ctx routeUtils.RouteContext, page int, mode *opMode) (*AuctionRes
 	if err != nil {
 		println("Error fetching data from hypixel")
 		return nil, err
+	} else if res == nil {
+		println("No data received from hypixel")
+		return nil, fmt.Errorf("no data received from hypixel")
 	}
 
 	var auctionRespond AuctionRespond
