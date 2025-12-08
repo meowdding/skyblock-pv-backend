@@ -34,7 +34,13 @@ func GetGarden(ctx utils.RouteContext, authentication utils.AuthenticationContex
 
 			if err != nil || profiles == nil {
 				res.WriteHeader(http.StatusInternalServerError)
-				fmt.Printf("[/garden/%s] User '%s' failed to fetch or cache garden: %v\n", profileId, authentication.Requester, err)
+				fmt.Printf(
+					"[/garden/%s] User '%s' with user-agent '%s' failed to fetch or cache garden: %v\n",
+					profileId,
+					authentication.Requester,
+					req.Header.Get("User-Agent"),
+					err,
+				)
 				return
 			} else {
 				result = *profiles

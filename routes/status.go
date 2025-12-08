@@ -39,7 +39,13 @@ func GetStatus(ctx utils.RouteContext, authentication utils.AuthenticationContex
 
 			if err != nil {
 				res.WriteHeader(http.StatusInternalServerError)
-				fmt.Printf("[/status/%s] User '%s' failed to fetch or cache status: %v\n", playerId, authentication.Requester, err)
+				fmt.Printf(
+					"[/status/%s] User '%s' with user-agent '%s' failed to fetch or cache status: %v\n",
+					playerId,
+					authentication.Requester,
+					req.Header.Get("User-Agent"),
+					err,
+				)
 				return
 			} else {
 				result = *profiles

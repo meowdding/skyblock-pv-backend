@@ -39,7 +39,13 @@ func GetPlayer(ctx utils.RouteContext, authentication utils.AuthenticationContex
 
 				if err != nil || profiles == nil {
 					res.WriteHeader(http.StatusInternalServerError)
-					fmt.Printf("[/player/%s] User '%s' failed to fetch or cache player: %v\n", playerId, authentication.Requester, err)
+					fmt.Printf(
+						"[/player/%s] User '%s' with user-agent '%s' failed to fetch or cache player: %v\n",
+						playerId,
+						authentication.Requester,
+						req.Header.Get("User-Agent"),
+						err,
+					)
 					return
 				} else {
 					result = *profiles
