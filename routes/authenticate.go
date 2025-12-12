@@ -21,7 +21,16 @@ func Authenticate(ctx utils.RouteContext, res http.ResponseWriter, req *http.Req
 
 	if username == "" || server == "" {
 		res.WriteHeader(http.StatusBadRequest)
-	} else if !ctx.Config.NoAuth {
+		return
+	}
+
+	if slices.Contains(ctx.Config.Endpoints.Authenticate.BannedAccounts, username) {
+		res.WriteHeader(http.StatusForbidden)
+		_, _ = io.WriteString(res, "Your account has been banned from using this service.")
+		return
+	}
+
+	if ctx.Config.Endpoints.Authenticate.Enabled {
 		r, err := http.Get(fmt.Sprintf(mojangAuthUrl, username, server))
 
 		if err != nil {

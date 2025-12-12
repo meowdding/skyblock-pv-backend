@@ -14,14 +14,19 @@ type Config struct {
 	Port                string          `json:"port"`
 	Admins              []string        `json:"admins"`
 	DevMode             bool            `json:"dev_mode"`
-	NoAuth              bool            `json:"no_auth"`
 	HighProfileAccounts []string        `json:"high_profile_accounts"`
 	Endpoints           EndpointsConfig `json:"endpoints"`
 }
 
 type EndpointsConfig struct {
-	Players   bool `json:"players"`
-	RateLimit bool `json:"rate_limit"`
+	Players      bool                       `json:"players"`
+	RateLimit    bool                       `json:"rate_limit"`
+	Authenticate AuthenticateEndpointConfig `json:"authenticate"`
+}
+
+type AuthenticateEndpointConfig struct {
+	Enabled        bool     `json:"enabled"`
+	BannedAccounts []string `json:"banned_accounts"`
 }
 
 func NewConfig() Config {
