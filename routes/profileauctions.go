@@ -32,9 +32,8 @@ func GetActiveProfileAuctions(ctx utils.RouteContext, authentication utils.Authe
 			res.WriteHeader(http.StatusInternalServerError)
 			fmt.Printf("Failed to fetch or cache player active auctions: %v\n", err)
 			return
-		} else {
-			result = *auctions
 		}
+		result = *auctions
 	}
 
 	res.Header().Set("Content-Type", "application/json")
@@ -51,30 +50,28 @@ func transformAuctions(auctionsText string) (string, error) {
 
 	if (auctions["success"] == nil) || (auctions["success"] != true) {
 		return auctionsText, nil
-	} else {
-		var currentTime = float64(time.Now().UnixMilli())
-		var realAuctions = auctions["auctions"].([]interface{})
-		var transformedAuctions = make([]map[string]interface{}, 0)
+	}
+	var currentTime = float64(time.Now().UnixMilli())
+	var realAuctions = auctions["auctions"].([]interface{})
+	var transformedAuctions = make([]map[string]interface{}, 0)
 
-		for _, auction := range realAuctions {
-			a, ok := auction.(map[string]interface{})
-			if !ok {
-				continue
-			}
-			end, ok := a["end"].(float64)
-			if ok && end > currentTime {
-				transformedAuctions = append(transformedAuctions, a)
-			}
+	for _, auction := range realAuctions {
+		a, ok := auction.(map[string]interface{})
+		if !ok {
+			continue
 		}
-
-		auctions["auctions"] = transformedAuctions
-
-		data, err := json.Marshal(auctions)
-
-		if err != nil {
-			return "", err
-		} else {
-			return string(data), nil
+		end, ok := a["end"].(float64)
+		if ok && end > currentTime {
+			transformedAuctions = append(transformedAuctions, a)
 		}
 	}
+
+	auctions["auctions"] = transformedAuctions
+
+	data, err := json.Marshal(auctions)
+
+	if err != nil {
+		return "", err
+	}
+	return string(data), nil
 }

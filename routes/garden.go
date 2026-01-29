@@ -22,38 +22,36 @@ func GetGarden(ctx utils.RouteContext, authentication utils.AuthenticationContex
 		if ctx.HasErrorCached(gardenCacheName, profileId) {
 			res.WriteHeader(http.StatusInternalServerError)
 			return
+		}
+		profiles, err := utils.GetFromHypixel(ctx, fmt.Sprintf("%s?profile=%s", gardenHypixelPath, profileId), true)
+		if err == nil && profiles == nil {
+			err = ctx.AddToCache(gardenCacheName, profileId, failedGardenResponse, gardenCacheDuration)
+
+			res.Header().Set("Content-Type", "application/json")
+			res.Header().Set("Cache-Control", fmt.Sprintf("max-age=%d", int(gardenCacheDuration.Seconds())))
+			_, _ = io.WriteString(res, failedGardenResponse)
+			return
+		} else if err == nil {
+			err = ctx.AddToCache(gardenCacheName, profileId, profiles, gardenCacheDuration)
 		} else {
-			profiles, err := utils.GetFromHypixel(ctx, fmt.Sprintf("%s?profile=%s", gardenHypixelPath, profileId), true)
-			if err == nil && profiles == nil {
-				err = ctx.AddToCache(gardenCacheName, profileId, failedGardenResponse, gardenCacheDuration)
-
-				res.Header().Set("Content-Type", "application/json")
-				res.Header().Set("Cache-Control", fmt.Sprintf("max-age=%d", int(gardenCacheDuration.Seconds())))
-				_, _ = io.WriteString(res, failedGardenResponse)
-				return
-			} else if err == nil {
-				err = ctx.AddToCache(gardenCacheName, profileId, profiles, gardenCacheDuration)
-			} else {
-				cacheError := ctx.AddToErrorCache(gardenCacheName, profileId, gardenFailedCacheDuration)
-				if cacheError != nil {
-					fmt.Printf("Failed to cache garden error: %v\n", cacheError)
-				}
-			}
-
-			if err != nil {
-				res.WriteHeader(http.StatusInternalServerError)
-				fmt.Printf(
-					"[/garden/%s] User '%s' with user-agent '%s' failed to fetch or cache garden: %v\n",
-					profileId,
-					authentication.Requester,
-					req.Header.Get("User-Agent"),
-					err,
-				)
-				return
-			} else {
-				result = *profiles
+			cacheError := ctx.AddToErrorCache(gardenCacheName, profileId, gardenFailedCacheDuration)
+			if cacheError != nil {
+				fmt.Printf("Failed to cache garden error: %v\n", cacheError)
 			}
 		}
+
+		if err != nil {
+			res.WriteHeader(http.StatusInternalServerError)
+			fmt.Printf(
+				"[/garden/%s] User '%s' with user-agent '%s' failed to fetch or cache garden: %v\n",
+				profileId,
+				authentication.Requester,
+				req.Header.Get("User-Agent"),
+				err,
+			)
+			return
+		}
+		result = *profiles
 	}
 
 	res.Header().Set("Content-Type", "application/json")

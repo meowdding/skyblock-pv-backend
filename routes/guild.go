@@ -55,9 +55,8 @@ func GetGuild(ctx utils.RouteContext, authentication utils.AuthenticationContext
 			res.WriteHeader(http.StatusInternalServerError)
 			fmt.Printf("Failed to fetch or cache guild: %v\n", err)
 			return
-		} else {
-			result = *guild
 		}
+		result = *guild
 	}
 
 	res.Header().Set("Content-Type", "application/json")

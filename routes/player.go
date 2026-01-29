@@ -26,31 +26,29 @@ func GetPlayer(ctx utils.RouteContext, authentication utils.AuthenticationContex
 			if ctx.HasErrorCached(playerCacheName, playerId) {
 				res.WriteHeader(http.StatusInternalServerError)
 				return
+			}
+			profiles, err := utils.GetFromHypixel(ctx, fmt.Sprintf("%s?uuid=%s", playerHypixelPath, playerId), true)
+			if err == nil && profiles != nil {
+				err = ctx.AddToCache(playerCacheName, playerId, profiles, playerCacheDuration)
 			} else {
-				profiles, err := utils.GetFromHypixel(ctx, fmt.Sprintf("%s?uuid=%s", playerHypixelPath, playerId), true)
-				if err == nil && profiles != nil {
-					err = ctx.AddToCache(playerCacheName, playerId, profiles, playerCacheDuration)
-				} else {
-					cacheError := ctx.AddToErrorCache(playerCacheName, playerId, playerFailedCacheDuration)
-					if cacheError != nil {
-						fmt.Printf("Failed to cache player error: %v\n", cacheError)
-					}
-				}
-
-				if err != nil || profiles == nil {
-					res.WriteHeader(http.StatusInternalServerError)
-					fmt.Printf(
-						"[/player/%s] User '%s' with user-agent '%s' failed to fetch or cache player: %v\n",
-						playerId,
-						authentication.Requester,
-						req.Header.Get("User-Agent"),
-						err,
-					)
-					return
-				} else {
-					result = *profiles
+				cacheError := ctx.AddToErrorCache(playerCacheName, playerId, playerFailedCacheDuration)
+				if cacheError != nil {
+					fmt.Printf("Failed to cache player error: %v\n", cacheError)
 				}
 			}
+
+			if err != nil || profiles == nil {
+				res.WriteHeader(http.StatusInternalServerError)
+				fmt.Printf(
+					"[/player/%s] User '%s' with user-agent '%s' failed to fetch or cache player: %v\n",
+					playerId,
+					authentication.Requester,
+					req.Header.Get("User-Agent"),
+					err,
+				)
+				return
+			}
+			result = *profiles
 		}
 
 		res.Header().Set("Content-Type", "application/json")

@@ -23,35 +23,33 @@ func GetProfiles(ctx utils.RouteContext, authentication utils.AuthenticationCont
 		if ctx.HasErrorCached(profileCacheName, playerId) {
 			res.WriteHeader(http.StatusInternalServerError)
 			return
-		} else {
-			profiles, err := utils.GetFromHypixel(ctx, fmt.Sprintf("%s?uuid=%s", profileHypixelPath, playerId), true)
-			if err == nil && profiles != nil {
-				cacheDuration := profileCacheDuration
-				if ctx.IsHighProfileAccount(playerId) {
-					cacheDuration = highProfileCacheDuration
-				}
-				err = ctx.AddToCache(profileCacheName, playerId, profiles, cacheDuration)
-			} else {
-				cacheError := ctx.AddToErrorCache(profileCacheName, playerId, profileFailedCacheDuration)
-				if cacheError != nil {
-					fmt.Printf("Failed to cache profiles error: %v\n", cacheError)
-				}
+		}
+		profiles, err := utils.GetFromHypixel(ctx, fmt.Sprintf("%s?uuid=%s", profileHypixelPath, playerId), true)
+		if err == nil && profiles != nil {
+			cacheDuration := profileCacheDuration
+			if ctx.IsHighProfileAccount(playerId) {
+				cacheDuration = highProfileCacheDuration
 			}
-
-			if err != nil || profiles == nil {
-				res.WriteHeader(http.StatusInternalServerError)
-				fmt.Printf(
-					"[/profiles/%s] User '%s' with user-agent '%s' failed to fetch or cache profiles: %v\n",
-					playerId,
-					authentication.Requester,
-					req.Header.Get("User-Agent"),
-					err,
-				)
-				return
-			} else {
-				result = *profiles
+			err = ctx.AddToCache(profileCacheName, playerId, profiles, cacheDuration)
+		} else {
+			cacheError := ctx.AddToErrorCache(profileCacheName, playerId, profileFailedCacheDuration)
+			if cacheError != nil {
+				fmt.Printf("Failed to cache profiles error: %v\n", cacheError)
 			}
 		}
+
+		if err != nil || profiles == nil {
+			res.WriteHeader(http.StatusInternalServerError)
+			fmt.Printf(
+				"[/profiles/%s] User '%s' with user-agent '%s' failed to fetch or cache profiles: %v\n",
+				playerId,
+				authentication.Requester,
+				req.Header.Get("User-Agent"),
+				err,
+			)
+			return
+		}
+		result = *profiles
 	}
 
 	milli, err := ctx.GetTtlMilli(profileCacheName, playerId)

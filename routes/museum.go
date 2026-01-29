@@ -21,31 +21,29 @@ func GetMuseum(ctx utils.RouteContext, authentication utils.AuthenticationContex
 		if ctx.HasErrorCached(museumCacheName, profileId) {
 			res.WriteHeader(http.StatusInternalServerError)
 			return
+		}
+		profiles, err := utils.GetFromHypixel(ctx, fmt.Sprintf("%s?profile=%s", museumHypixelPath, profileId), true)
+		if err == nil && profiles != nil {
+			err = ctx.AddToCache(museumCacheName, profileId, profiles, museumCacheDuration)
 		} else {
-			profiles, err := utils.GetFromHypixel(ctx, fmt.Sprintf("%s?profile=%s", museumHypixelPath, profileId), true)
-			if err == nil && profiles != nil {
-				err = ctx.AddToCache(museumCacheName, profileId, profiles, museumCacheDuration)
-			} else {
-				cacheError := ctx.AddToErrorCache(museumCacheName, profileId, museumFailedCacheDuration)
-				if cacheError != nil {
-					fmt.Printf("Failed to cache meseum error: %v\n", cacheError)
-				}
-			}
-
-			if err != nil || profiles == nil {
-				res.WriteHeader(http.StatusInternalServerError)
-				fmt.Printf(
-					"[/museum/%s] User '%s' with user-agent '%s' failed to fetch or cache museum: %v\n",
-					profileId,
-					authentication.Requester,
-					req.Header.Get("User-Agent"),
-					err,
-				)
-				return
-			} else {
-				result = *profiles
+			cacheError := ctx.AddToErrorCache(museumCacheName, profileId, museumFailedCacheDuration)
+			if cacheError != nil {
+				fmt.Printf("Failed to cache meseum error: %v\n", cacheError)
 			}
 		}
+
+		if err != nil || profiles == nil {
+			res.WriteHeader(http.StatusInternalServerError)
+			fmt.Printf(
+				"[/museum/%s] User '%s' with user-agent '%s' failed to fetch or cache museum: %v\n",
+				profileId,
+				authentication.Requester,
+				req.Header.Get("User-Agent"),
+				err,
+			)
+			return
+		}
+		result = *profiles
 	}
 
 	res.Header().Set("Content-Type", "application/json")
