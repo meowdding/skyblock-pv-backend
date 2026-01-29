@@ -149,6 +149,10 @@ func main() {
 		}))
 	}
 
+	http.HandleFunc("/shared_data/{player_id}", create(RequestRoute{
+		Get: authenticated(routes.GetSharedData),
+	}))
+
 	registerUserData("hotf", routes.PutHotfData)
 	registerUserData("hotm", routes.PutHotmData)
 

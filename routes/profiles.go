@@ -1,6 +1,7 @@
 package routes
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -14,6 +15,15 @@ const highProfileCacheDuration = 15 * time.Minute
 const profileFailedCacheDuration = 3 * time.Minute
 const profileCacheName = "profiles"
 const profileHypixelPath = "/v2/skyblock/profiles"
+
+type profileResponse struct {
+	Status   bool      `json:"success"`
+	Profiles []profile `json:"profiles"`
+}
+
+type profile struct {
+	ProfileId string `json:"profile_id"`
+}
 
 func GetProfiles(ctx internal.RouteContext, authentication internal.AuthenticationContext, res http.ResponseWriter, req *http.Request) {
 	playerId := req.PathValue("id")
@@ -37,6 +47,25 @@ func GetProfiles(ctx internal.RouteContext, authentication internal.Authenticati
 				fmt.Printf("Failed to cache profiles error: %v\n", cacheError)
 			}
 		}
+
+		go func() {
+			data := profiles
+			if data == nil {
+				return
+			}
+
+			response := profileResponse{}
+			if err := json.Unmarshal([]byte(*data), &response); err != nil || response.Profiles == nil {
+				return
+			}
+
+			profileIds := make([]string, len(response.Profiles))
+			for i, p := range response.Profiles {
+				profileIds[i] = p.ProfileId
+			}
+
+			CheckData(ctx, playerId, profileIds)
+		}()
 
 		if err != nil || profiles == nil {
 			res.WriteHeader(http.StatusInternalServerError)

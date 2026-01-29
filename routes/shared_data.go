@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"skyblock-pv-backend/internal"
+	"strings"
 )
 
 type HotfData struct {
@@ -47,6 +48,77 @@ const addData = `
 	values ($1, $2, jsonb_set(jsonb_build_object(), $3::text[], $4::jsonb))
 	on conflict (player_id, profile_id) do update set data = jsonb_set(shared_data.data, $3::text[], $4::jsonb)
 `
+
+const deleteUnknownProfiles = `
+	delete from shared_data where player_id = $1 and profile_id <> all($2::uuid[])
+`
+
+const getSharedData = `
+	select data, profile_id from shared_data where player_id = $1
+`
+
+func GetSharedData(ctx internal.RouteContext, authentication internal.AuthenticationContext, res http.ResponseWriter, req *http.Request) {
+	playerId := req.PathValue("player_id")
+
+	rows, err := ctx.Pool.Query(*ctx.Context, getSharedData, playerId)
+	if err != nil {
+		res.WriteHeader(http.StatusInternalServerError)
+		fmt.Printf(
+			"[/shared_data/%s] User '%s' with user-agent '%s': %v\n",
+			playerId,
+			authentication.Requester,
+			req.Header.Get("User-Agent"),
+			err,
+		)
+		return
+	}
+
+	dataMap := make(map[string]interface{})
+	defer rows.Close()
+	for rows.Next() {
+		var id string
+		var data map[string]interface{}
+
+		err = rows.Scan(&data, &id)
+		if err != nil {
+			res.WriteHeader(http.StatusInternalServerError)
+			fmt.Printf(
+				"[/shared_data/%s] User '%s' with user-agent '%s': %v\n",
+				playerId,
+				authentication.Requester,
+				req.Header.Get("User-Agent"),
+				err,
+			)
+			return
+		}
+		dataMap[id] = data
+	}
+
+	data, err := json.Marshal(dataMap)
+	if err != nil {
+		res.WriteHeader(http.StatusInternalServerError)
+		fmt.Printf(
+			"[/shared_data/%s] User '%s' with user-agent '%s': %v\n",
+			playerId,
+			authentication.Requester,
+			req.Header.Get("User-Agent"),
+			err,
+		)
+		return
+	}
+	_, _ = res.Write(data)
+}
+
+func CheckData(ctx internal.RouteContext, player string, profileIds []string) {
+	if _, err := ctx.Pool.Exec(*ctx.Context, deleteUnknownProfiles, player, "{"+strings.Join(profileIds, ",")+"}"); err != nil {
+		fmt.Printf(
+			"[Chore] Failed to execute deletion of unknown profiles for %s (%s): %v\n",
+			player,
+			profileIds,
+			err,
+		)
+	}
+}
 
 func putData(key string, createData func() defaults) func(ctx internal.RouteContext, authentication internal.AuthenticationContext, res http.ResponseWriter, req *http.Request) {
 	dbKey := "{" + key + "}"
