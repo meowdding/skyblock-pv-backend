@@ -4,8 +4,9 @@ import (
 	"fmt"
 	"net/http"
 	"skyblock-pv-backend/auctions"
+	"skyblock-pv-backend/internal"
 	"skyblock-pv-backend/routes"
-	"skyblock-pv-backend/routes/utils"
+	"skyblock-pv-backend/utils"
 	"time"
 )
 
@@ -37,23 +38,23 @@ type AbstractRequestHandler interface {
 
 type NotImplementedRequestHandler struct{}
 
-func authenticated(handler func(utils.RouteContext, utils.AuthenticationContext, http.ResponseWriter, *http.Request)) AuthenticatedRequestHandler {
+func authenticated(handler func(internal.RouteContext, internal.AuthenticationContext, http.ResponseWriter, *http.Request)) AuthenticatedRequestHandler {
 	return AuthenticatedRequestHandler{handler: handler}
 }
 
-func public(handler func(utils.RouteContext, http.ResponseWriter, *http.Request)) RequestHandler {
+func public(handler func(internal.RouteContext, http.ResponseWriter, *http.Request)) RequestHandler {
 	return RequestHandler{handler: handler}
 }
 
 type RequestHandler struct {
-	handler func(utils.RouteContext, http.ResponseWriter, *http.Request)
+	handler func(internal.RouteContext, http.ResponseWriter, *http.Request)
 }
 
 type AuthenticatedRequestHandler struct {
-	handler func(utils.RouteContext, utils.AuthenticationContext, http.ResponseWriter, *http.Request)
+	handler func(internal.RouteContext, internal.AuthenticationContext, http.ResponseWriter, *http.Request)
 }
 
-var routeContext = utils.NewRouteContext()
+var routeContext = internal.NewRouteContext()
 
 func (not NotImplementedRequestHandler) handle(res http.ResponseWriter, _ *http.Request) {
 	res.WriteHeader(http.StatusMethodNotAllowed)
@@ -64,7 +65,7 @@ func (normal RequestHandler) handle(res http.ResponseWriter, req *http.Request) 
 }
 
 func (authenticated AuthenticatedRequestHandler) handle(res http.ResponseWriter, req *http.Request) {
-	context := utils.GetAuthenticatedContext(routeContext, req.Header.Get("Authorization"))
+	context := internal.GetAuthenticatedContext(routeContext, req.Header.Get("Authorization"))
 	if context == nil {
 		res.WriteHeader(http.StatusUnauthorized)
 		return
@@ -141,6 +142,23 @@ func main() {
 	http.HandleFunc("/_ratelimit", create(RequestRoute{
 		Get: authenticated(routes.GetRateLimit),
 	}))
+
+	registerUserData := func(name string, handler func(internal.RouteContext, internal.AuthenticationContext, http.ResponseWriter, *http.Request)) {
+		http.HandleFunc("/shared_data/{profile_id}/"+name, create(RequestRoute{
+			Put: authenticated(handler),
+		}))
+	}
+
+	registerUserData("hotf", routes.PutHotfData)
+	registerUserData("hotm", routes.PutHotmData)
+
+	if utils.Debug {
+		key, err := internal.CreateAuthenticationKey(routeContext, routeContext.Config.Admins[0], true)
+		if err != nil {
+			panic(err)
+		}
+		println(key)
+	}
 
 	fmt.Printf("Listening on 0.0.0.0:%s\n", routeContext.Config.Port)
 	err := http.ListenAndServe(fmt.Sprintf(":%s", routeContext.Config.Port), nil)

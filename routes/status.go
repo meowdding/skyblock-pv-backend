@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"skyblock-pv-backend/routes/utils"
+	"skyblock-pv-backend/internal"
 	"time"
 )
 
@@ -14,7 +14,7 @@ const statusFailedCacheDuration = 3 * time.Minute
 const statusCacheName = "status"
 const statusHypixelPath = "/v2/status"
 
-func GetStatus(ctx utils.RouteContext, authentication utils.AuthenticationContext, res http.ResponseWriter, req *http.Request) {
+func GetStatus(ctx internal.RouteContext, authentication internal.AuthenticationContext, res http.ResponseWriter, req *http.Request) {
 	playerId := req.PathValue("id")
 	result, err := ctx.GetFromCache(&authentication, statusCacheName, playerId)
 
@@ -24,7 +24,7 @@ func GetStatus(ctx utils.RouteContext, authentication utils.AuthenticationContex
 			return
 		}
 
-		profiles, err := utils.GetFromHypixel(ctx, fmt.Sprintf("%s?uuid=%s", statusHypixelPath, playerId), true)
+		profiles, err := internal.GetFromHypixel(ctx, fmt.Sprintf("%s?uuid=%s", statusHypixelPath, playerId), true)
 		if err == nil && profiles != nil {
 			cacheDuration := statusCacheDuration
 			if ctx.IsHighProfileAccount(playerId) {

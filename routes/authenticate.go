@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"skyblock-pv-backend/routes/utils"
+	"skyblock-pv-backend/internal"
 	"slices"
 )
 
@@ -15,7 +15,7 @@ type SessionResponse struct {
 	Id string `json:"id"`
 }
 
-func Authenticate(ctx utils.RouteContext, res http.ResponseWriter, req *http.Request) {
+func Authenticate(ctx internal.RouteContext, res http.ResponseWriter, req *http.Request) {
 	username := req.Header.Get("x-minecraft-username")
 	server := req.Header.Get("x-minecraft-server")
 
@@ -56,7 +56,7 @@ func Authenticate(ctx utils.RouteContext, res http.ResponseWriter, req *http.Req
 			fmt.Printf("Failed to decode session response: %v\n", err)
 		} else {
 			bypassCache := req.URL.Query().Has("bypassCache") && slices.Contains(ctx.Config.Admins, session.Id)
-			token, err := utils.CreateAuthenticationKey(ctx, session.Id, bypassCache)
+			token, err := internal.CreateAuthenticationKey(ctx, session.Id, bypassCache)
 			if err != nil {
 				res.WriteHeader(http.StatusInternalServerError)
 				fmt.Printf("Failed to create authentication key: %v\n", err)
@@ -65,7 +65,7 @@ func Authenticate(ctx utils.RouteContext, res http.ResponseWriter, req *http.Req
 			}
 		}
 	} else {
-		token, err := utils.CreateAuthenticationKey(ctx, "00000000000000000000000000000000", false)
+		token, err := internal.CreateAuthenticationKey(ctx, "00000000000000000000000000000000", false)
 		if err != nil {
 			res.WriteHeader(http.StatusInternalServerError)
 			fmt.Printf("Failed to create authentication key: %v\n", err)

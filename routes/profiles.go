@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"skyblock-pv-backend/routes/utils"
+	"skyblock-pv-backend/internal"
 	"strconv"
 	"time"
 )
@@ -15,7 +15,7 @@ const profileFailedCacheDuration = 3 * time.Minute
 const profileCacheName = "profiles"
 const profileHypixelPath = "/v2/skyblock/profiles"
 
-func GetProfiles(ctx utils.RouteContext, authentication utils.AuthenticationContext, res http.ResponseWriter, req *http.Request) {
+func GetProfiles(ctx internal.RouteContext, authentication internal.AuthenticationContext, res http.ResponseWriter, req *http.Request) {
 	playerId := req.PathValue("id")
 	result, err := ctx.GetFromCache(&authentication, profileCacheName, playerId)
 
@@ -24,7 +24,7 @@ func GetProfiles(ctx utils.RouteContext, authentication utils.AuthenticationCont
 			res.WriteHeader(http.StatusInternalServerError)
 			return
 		}
-		profiles, err := utils.GetFromHypixel(ctx, fmt.Sprintf("%s?uuid=%s", profileHypixelPath, playerId), true)
+		profiles, err := internal.GetFromHypixel(ctx, fmt.Sprintf("%s?uuid=%s", profileHypixelPath, playerId), true)
 		if err == nil && profiles != nil {
 			cacheDuration := profileCacheDuration
 			if ctx.IsHighProfileAccount(playerId) {

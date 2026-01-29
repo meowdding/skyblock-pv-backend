@@ -5,10 +5,10 @@ import (
 	"io"
 	"net/http"
 	"skyblock-pv-backend/auctions"
-	"skyblock-pv-backend/routes/utils"
+	"skyblock-pv-backend/internal"
 )
 
-func GetLbin(ctx utils.RouteContext, res http.ResponseWriter, _ *http.Request) {
+func GetLbin(ctx internal.RouteContext, res http.ResponseWriter, _ *http.Request) {
 	cachedData, err := auctions.GetCachedAuctions(&ctx)
 	if err != nil {
 		res.WriteHeader(http.StatusInternalServerError)

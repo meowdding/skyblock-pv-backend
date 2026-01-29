@@ -1,8 +1,9 @@
-package utils
+package internal
 
 import (
-	"github.com/golang-jwt/jwt/v5"
 	"time"
+
+	"github.com/golang-jwt/jwt/v5"
 )
 
 type AuthenticationContext struct {
