@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"skyblock-pv-backend/internal"
+	"skyblock-pv-backend/utils"
 	"strings"
 )
 
@@ -166,6 +167,15 @@ func putData(key string, createData func() defaults) func(ctx internal.RouteCont
 			)
 			return
 		}
+		if utils.Debug {
+			fmt.Printf(
+				"[/shared_data/%s/%s] Updating shared data for '%s' with user-agent '%s'\n",
+				profileId,
+				key,
+				playerId,
+				req.Header.Get("User-Agent"),
+			)
+		}
 
 		res.WriteHeader(http.StatusOK)
 	}
@@ -178,8 +188,9 @@ type TreeNode struct {
 }
 
 type HotfData struct {
-	ForestWhispers int        `json:"forest_whispers"`
+	ForestWhispers int64      `json:"forest_whispers"`
 	Experience     float32    `json:"experience"`
+	Level          int        `json:"level"`
 	Nodes          []TreeNode `json:"nodes"`
 }
 
@@ -195,6 +206,7 @@ var PutHotfData = putData("hotf", func() defaults {
 
 type HotmData struct {
 	Experience float32    `json:"experience"`
+	Level      int        `json:"level"`
 	Nodes      []TreeNode `json:"nodes"`
 }
 
