@@ -6,9 +6,16 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
+const guestAuthenticationKey = "00000000000000000000000000000000"
+
 type AuthenticationContext struct {
 	Requester   string
 	BypassCache bool
+	IsGuest     bool
+}
+
+func CreateGuestAuthenticationKey(ctx RouteContext, bypassCache bool) (string, error) {
+	return CreateAuthenticationKey(ctx, guestAuthenticationKey, bypassCache)
 }
 
 func CreateAuthenticationKey(ctx RouteContext, subject string, bypassCache bool) (string, error) {
@@ -42,5 +49,6 @@ func GetAuthenticatedContext(ctx RouteContext, data string) *AuthenticationConte
 	return &AuthenticationContext{
 		Requester:   sub,
 		BypassCache: bypass && ok,
+		IsGuest:     sub == guestAuthenticationKey,
 	}
 }

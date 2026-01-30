@@ -65,7 +65,7 @@ func Authenticate(ctx internal.RouteContext, res http.ResponseWriter, req *http.
 			}
 		}
 	} else {
-		token, err := internal.CreateAuthenticationKey(ctx, "00000000000000000000000000000000", false)
+		token, err := internal.CreateGuestAuthenticationKey(ctx, false)
 		if err != nil {
 			res.WriteHeader(http.StatusInternalServerError)
 			fmt.Printf("Failed to create authentication key: %v\n", err)

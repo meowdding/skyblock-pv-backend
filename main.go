@@ -6,85 +6,62 @@ import (
 	"skyblock-pv-backend/auctions"
 	"skyblock-pv-backend/internal"
 	"skyblock-pv-backend/routes"
-	"skyblock-pv-backend/utils"
+	"skyblock-pv-backend/routes/handler"
 	"time"
 )
 
 func setDefaults(route *RequestRoute) {
 	if route.Get == nil {
-		route.Get = NotImplementedRequestHandler{}
+		route.Get = handler.NotImplementedRequestHandler{}
 	}
 	if route.Post == nil {
-		route.Post = NotImplementedRequestHandler{}
+		route.Post = handler.NotImplementedRequestHandler{}
 	}
 	if route.Put == nil {
-		route.Put = NotImplementedRequestHandler{}
+		route.Put = handler.NotImplementedRequestHandler{}
 	}
 	if route.Delete == nil {
-		route.Delete = NotImplementedRequestHandler{}
+		route.Delete = handler.NotImplementedRequestHandler{}
 	}
 }
 
 type RequestRoute struct {
-	Get    AbstractRequestHandler
-	Post   AbstractRequestHandler
-	Put    AbstractRequestHandler
-	Delete AbstractRequestHandler
+	Get    handler.RequestHandler
+	Post   handler.RequestHandler
+	Put    handler.RequestHandler
+	Delete handler.RequestHandler
 }
 
-type AbstractRequestHandler interface {
-	handle(http.ResponseWriter, *http.Request)
+func private(function func(internal.RouteContext, internal.AuthenticationContext, http.ResponseWriter, *http.Request)) handler.PrivateRequestHandler {
+	return handler.PrivateRequestHandler{Handler: function}
 }
 
-type NotImplementedRequestHandler struct{}
-
-func authenticated(handler func(internal.RouteContext, internal.AuthenticationContext, http.ResponseWriter, *http.Request)) AuthenticatedRequestHandler {
-	return AuthenticatedRequestHandler{handler: handler}
+func authenticated(function func(internal.RouteContext, internal.AuthenticationContext, http.ResponseWriter, *http.Request)) handler.AuthenticatedRequestHandler {
+	return handler.AuthenticatedRequestHandler{Handler: function}
 }
 
-func public(handler func(internal.RouteContext, http.ResponseWriter, *http.Request)) RequestHandler {
-	return RequestHandler{handler: handler}
+func admin(function func(internal.RouteContext, internal.AuthenticationContext, http.ResponseWriter, *http.Request)) handler.AdminRequestHandler {
+	return handler.AdminRequestHandler{Handler: function}
 }
 
-type RequestHandler struct {
-	handler func(internal.RouteContext, http.ResponseWriter, *http.Request)
-}
-
-type AuthenticatedRequestHandler struct {
-	handler func(internal.RouteContext, internal.AuthenticationContext, http.ResponseWriter, *http.Request)
+func public(function func(internal.RouteContext, http.ResponseWriter, *http.Request)) handler.RequestHandler {
+	return handler.PassthroughRequestHandler{Handler: function}
 }
 
 var routeContext = internal.NewRouteContext()
-
-func (not NotImplementedRequestHandler) handle(res http.ResponseWriter, _ *http.Request) {
-	res.WriteHeader(http.StatusMethodNotAllowed)
-}
-
-func (normal RequestHandler) handle(res http.ResponseWriter, req *http.Request) {
-	normal.handler(routeContext, res, req)
-}
-
-func (authenticated AuthenticatedRequestHandler) handle(res http.ResponseWriter, req *http.Request) {
-	context := internal.GetAuthenticatedContext(routeContext, req.Header.Get("Authorization"))
-	if context == nil {
-		res.WriteHeader(http.StatusUnauthorized)
-		return
-	}
-	authenticated.handler(routeContext, *context, res, req)
-}
 
 func create(handlers RequestRoute) func(http.ResponseWriter, *http.Request) {
 	setDefaults(&handlers)
 	return func(res http.ResponseWriter, req *http.Request) {
 		switch req.Method {
 		case "GET":
-			handlers.Get.handle(res, req)
+			handlers.Get.Handle(routeContext, res, req)
 		case "POST":
-			handlers.Post.handle(res, req)
+			handlers.Post.Handle(routeContext, res, req)
 		case "PUT":
-			handlers.Put.handle(res, req)
+			handlers.Put.Handle(routeContext, res, req)
 		case "DELETE":
-			handlers.Delete.handle(res, req)
+			handlers.Delete.Handle(routeContext, res, req)
 		default:
 			res.WriteHeader(http.StatusMethodNotAllowed)
 		}
@@ -115,32 +92,32 @@ func main() {
 		Get: public(routes.Authenticate),
 	}))
 	http.HandleFunc("/profiles/{id}", create(RequestRoute{
-		Get: authenticated(routes.GetProfiles),
+		Get: private(routes.GetProfiles),
 	}))
 	http.HandleFunc("/garden/{profile}", create(RequestRoute{
-		Get: authenticated(routes.GetGarden),
+		Get: private(routes.GetGarden),
 	}))
 	http.HandleFunc("/museum/{profile}", create(RequestRoute{
-		Get: authenticated(routes.GetMuseum),
+		Get: private(routes.GetMuseum),
 	}))
 	http.HandleFunc("/status/{id}", create(RequestRoute{
-		Get: authenticated(routes.GetStatus),
+		Get: private(routes.GetStatus),
 	}))
 	http.HandleFunc("/guild/{id}", create(RequestRoute{
-		Get: authenticated(routes.GetGuild),
+		Get: private(routes.GetGuild),
 	}))
 	http.HandleFunc("/auctions/{profile}", create(RequestRoute{
-		Get: authenticated(routes.GetActiveProfileAuctions),
+		Get: private(routes.GetActiveProfileAuctions),
 	}))
 	http.HandleFunc("/player/{id}", create(RequestRoute{
-		Get: authenticated(routes.GetPlayer),
+		Get: private(routes.GetPlayer),
 	}))
 
 	http.HandleFunc("/auctions", create(RequestRoute{
 		Get: public(routes.GetLbin),
 	}))
-	http.HandleFunc("/_ratelimit", create(RequestRoute{
-		Get: authenticated(routes.GetRateLimit),
+	http.HandleFunc("/shared_data/{player_id}", create(RequestRoute{
+		Get: private(routes.GetSharedData),
 	}))
 
 	registerUserData := func(name string, handler func(internal.RouteContext, internal.AuthenticationContext, http.ResponseWriter, *http.Request)) {
@@ -149,13 +126,9 @@ func main() {
 		}))
 	}
 
-	http.HandleFunc("/shared_data/{player_id}", create(RequestRoute{
-		Get: authenticated(routes.GetSharedData),
-	}))
 	http.HandleFunc("/shared_data", create(RequestRoute{
-		Delete: authenticated(routes.GetSharedData),
+		Delete: authenticated(routes.DeleteData),
 	}))
-
 	registerUserData("hotf", routes.PutHotfData)
 	registerUserData("hotm", routes.PutHotmData)
 	registerUserData("consumeables", routes.PutConsumeablesData)
@@ -166,13 +139,9 @@ func main() {
 	registerUserData("time_pocket", routes.PutTimePocket)
 	registerUserData("garden_chips", routes.PutGardenChips)
 
-	if utils.Debug {
-		key, err := internal.CreateAuthenticationKey(routeContext, routeContext.Config.Admins[0], true)
-		if err != nil {
-			panic(err)
-		}
-		println(key)
-	}
+	http.HandleFunc("/_ratelimit", create(RequestRoute{
+		Get: admin(routes.GetRateLimit),
+	}))
 
 	fmt.Printf("Listening on 0.0.0.0:%s\n", routeContext.Config.Port)
 	err := http.ListenAndServe(fmt.Sprintf(":%s", routeContext.Config.Port), nil)
