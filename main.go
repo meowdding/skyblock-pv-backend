@@ -152,9 +152,19 @@ func main() {
 	http.HandleFunc("/shared_data/{player_id}", create(RequestRoute{
 		Get: authenticated(routes.GetSharedData),
 	}))
+	http.HandleFunc("/shared_data", create(RequestRoute{
+		Delete: authenticated(routes.GetSharedData),
+	}))
 
 	registerUserData("hotf", routes.PutHotfData)
 	registerUserData("hotm", routes.PutHotmData)
+	registerUserData("consumeables", routes.PutConsumeablesData)
+	registerUserData("hunting_box", routes.PutHuntingBox)
+	registerUserData("melody", routes.PutMelodyData)
+	registerUserData("foraging", routes.PutMiscForagingData)
+	registerUserData("garden", routes.PutMiscGardenData)
+	registerUserData("time_pocket", routes.PutTimePocket)
+	registerUserData("garden_chips", routes.PutGardenChips)
 
 	if utils.Debug {
 		key, err := internal.CreateAuthenticationKey(routeContext, routeContext.Config.Admins[0], true)
