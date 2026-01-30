@@ -5,7 +5,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	routeUtils "skyblock-pv-backend/routes/utils"
+	"skyblock-pv-backend/internal"
 	"skyblock-pv-backend/utils"
 	"skyblock-pv-backend/utils/nbt"
 	"slices"
@@ -18,9 +18,9 @@ const AuthCacheVersion = 1
 func withCacheVersion(str string) string { return fmt.Sprintf("%s_%d", str, AuthCacheVersion) }
 
 type opMode interface {
-	GetAuctions(ctx *routeUtils.RouteContext) ([]AuctionStruct, error)
-	Add(ctx *routeUtils.RouteContext, respond *AuctionRespond)
-	Finish(ctx *routeUtils.RouteContext)
+	GetAuctions(ctx *internal.RouteContext) ([]AuctionStruct, error)
+	Add(ctx *internal.RouteContext, respond *AuctionRespond)
+	Finish(ctx *internal.RouteContext)
 	Debug(page int)
 }
 
@@ -29,16 +29,16 @@ type prod struct {
 	auctions []AuctionStruct
 }
 
-func (prod *prod) Add(_ *routeUtils.RouteContext, response *AuctionRespond) {
+func (prod *prod) Add(_ *internal.RouteContext, response *AuctionRespond) {
 	if prod.auctions == nil {
 		prod.auctions = make([]AuctionStruct, 0)
 	}
 	prod.auctions = append(prod.auctions, response.Auctions...)
 }
 
-func (prod *prod) Finish(_ *routeUtils.RouteContext) {}
+func (prod *prod) Finish(_ *internal.RouteContext) {}
 
-func (prod *prod) GetAuctions(ctx *routeUtils.RouteContext) ([]AuctionStruct, error) {
+func (prod *prod) GetAuctions(ctx *internal.RouteContext) ([]AuctionStruct, error) {
 	err := fetch(*ctx, prod)
 	if err != nil {
 		return nil, err
@@ -54,7 +54,7 @@ type dev struct {
 	Duration time.Duration
 }
 
-func (dev *dev) Add(ctx *routeUtils.RouteContext, response *AuctionRespond) {
+func (dev *dev) Add(ctx *internal.RouteContext, response *AuctionRespond) {
 	cacheAll(ctx, response)
 	if dev.auctions == nil {
 		dev.auctions = make([]AuctionStruct, 0)
@@ -62,11 +62,11 @@ func (dev *dev) Add(ctx *routeUtils.RouteContext, response *AuctionRespond) {
 	dev.auctions = append(dev.auctions, response.Auctions...)
 }
 
-func (dev *dev) Finish(ctx *routeUtils.RouteContext) {
+func (dev *dev) Finish(ctx *internal.RouteContext) {
 	_ = ctx.AddToCache(withCacheVersion("auctions"), "cached", "<3", dev.Duration)
 }
 
-func (dev *dev) GetAuctions(ctx *routeUtils.RouteContext) ([]AuctionStruct, error) {
+func (dev *dev) GetAuctions(ctx *internal.RouteContext) ([]AuctionStruct, error) {
 	fmt.Println("Using dev mode, PLEASE DONT USE IN PROD :sob:")
 	if ctx.IsCached(withCacheVersion("auctions"), "cached") {
 		fmt.Println("Retrieving previously cached data")
@@ -88,7 +88,7 @@ func (dev *dev) Debug(page int) {
 	fmt.Printf("Fetching page %d\n", page)
 }
 
-func (dev *dev) readCached(ctx *routeUtils.RouteContext) (*[]AuctionStruct, error) {
+func (dev *dev) readCached(ctx *internal.RouteContext) (*[]AuctionStruct, error) {
 	auctions, err := ctx.GetAll(withCacheVersion("auctions.index"))
 	if err != nil {
 		return nil, err
@@ -106,7 +106,7 @@ func (dev *dev) readCached(ctx *routeUtils.RouteContext) (*[]AuctionStruct, erro
 	return &dev.auctions, nil
 }
 
-func GetCachedAuctions(ctx *routeUtils.RouteContext) (*string, error) {
+func GetCachedAuctions(ctx *internal.RouteContext) (*string, error) {
 	data, err := ctx.GetFromCache(nil, withCacheVersion("auctions"), "cached")
 	if err != nil {
 		return nil, err
@@ -114,7 +114,7 @@ func GetCachedAuctions(ctx *routeUtils.RouteContext) (*string, error) {
 	return &data, nil
 }
 
-func FetchAll(ctx *routeUtils.RouteContext) error {
+func FetchAll(ctx *internal.RouteContext) error {
 	var opMode opMode
 	if utils.Debug {
 		opMode = &dev{}
@@ -206,13 +206,13 @@ type ItemInfo struct {
 	Mean    float64 `json:"mean"`
 }
 
-func cacheAll(ctx *routeUtils.RouteContext, auction *AuctionRespond) {
+func cacheAll(ctx *internal.RouteContext, auction *AuctionRespond) {
 	for _, auctionStruct := range auction.Auctions {
 		cache(*ctx, &auctionStruct)
 	}
 }
 
-func cache(ctx routeUtils.RouteContext, auction *AuctionStruct) {
+func cache(ctx internal.RouteContext, auction *AuctionStruct) {
 	data, err := json.Marshal(auction)
 	if err != nil {
 		println(err.Error())
@@ -221,7 +221,7 @@ func cache(ctx routeUtils.RouteContext, auction *AuctionStruct) {
 	_ = ctx.AddToCache(withCacheVersion("auctions.index"), auction.Id, data, time.Hour*7)
 }
 
-func fetch(ctx routeUtils.RouteContext, mode opMode) error {
+func fetch(ctx internal.RouteContext, mode opMode) error {
 	data, err := fetchPage(ctx, 0, &mode)
 	if err != nil {
 		return err
@@ -243,9 +243,9 @@ func fetch(ctx routeUtils.RouteContext, mode opMode) error {
 	return err
 }
 
-func fetchPage(ctx routeUtils.RouteContext, page int, mode *opMode) (*AuctionRespond, error) {
+func fetchPage(ctx internal.RouteContext, page int, mode *opMode) (*AuctionRespond, error) {
 	(*mode).Debug(page)
-	res, err := routeUtils.GetFromHypixel(ctx, fmt.Sprintf("/v2/skyblock/auctions?page=%d", page), false)
+	res, err := internal.GetFromHypixel(ctx, fmt.Sprintf("/v2/skyblock/auctions?page=%d", page), false)
 	if err != nil {
 		println("Error fetching data from hypixel")
 		return nil, err

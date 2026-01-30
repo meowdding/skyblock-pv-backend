@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"skyblock-pv-backend/routes/utils"
+	"skyblock-pv-backend/internal"
 	"time"
 )
 
@@ -13,12 +13,12 @@ const playerAuctionsCacheDuration = 10 * time.Minute
 const playerAuctionsCacheName = "player_active_auctions"
 const playerAuctionsHypixelPath = "/v2/skyblock/auction"
 
-func GetActiveProfileAuctions(ctx utils.RouteContext, authentication utils.AuthenticationContext, res http.ResponseWriter, req *http.Request) {
+func GetActiveProfileAuctions(ctx internal.RouteContext, authentication internal.AuthenticationContext, res http.ResponseWriter, req *http.Request) {
 	profileId := req.PathValue("profile")
 	result, err := ctx.GetFromCache(&authentication, playerAuctionsCacheName, profileId)
 
 	if err != nil {
-		auctions, err := utils.GetFromHypixel(ctx, fmt.Sprintf("%s?profile=%s", playerAuctionsHypixelPath, profileId), true)
+		auctions, err := internal.GetFromHypixel(ctx, fmt.Sprintf("%s?profile=%s", playerAuctionsHypixelPath, profileId), true)
 		if err == nil && auctions != nil {
 			transformedAuctions, err := transformAuctions(*auctions)
 			auctions = &transformedAuctions

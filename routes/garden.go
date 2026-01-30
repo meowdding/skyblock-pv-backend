@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"skyblock-pv-backend/routes/utils"
+	"skyblock-pv-backend/internal"
 	"time"
 )
 
@@ -14,7 +14,7 @@ const gardenCacheName = "garden"
 const gardenHypixelPath = "/v2/skyblock/garden"
 const failedGardenResponse = `{"success": false,"garden": {}}`
 
-func GetGarden(ctx utils.RouteContext, authentication utils.AuthenticationContext, res http.ResponseWriter, req *http.Request) {
+func GetGarden(ctx internal.RouteContext, authentication internal.AuthenticationContext, res http.ResponseWriter, req *http.Request) {
 	profileId := req.PathValue("profile")
 	result, err := ctx.GetFromCache(&authentication, gardenCacheName, profileId)
 
@@ -23,7 +23,7 @@ func GetGarden(ctx utils.RouteContext, authentication utils.AuthenticationContex
 			res.WriteHeader(http.StatusInternalServerError)
 			return
 		}
-		profiles, err := utils.GetFromHypixel(ctx, fmt.Sprintf("%s?profile=%s", gardenHypixelPath, profileId), true)
+		profiles, err := internal.GetFromHypixel(ctx, fmt.Sprintf("%s?profile=%s", gardenHypixelPath, profileId), true)
 		if err == nil && profiles == nil {
 			err = ctx.AddToCache(gardenCacheName, profileId, failedGardenResponse, gardenCacheDuration)
 

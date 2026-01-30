@@ -1,30 +1,65 @@
-package utils
+package internal
 
 import (
 	"context"
+	"database/sql"
+	"embed"
+	"errors"
 	"fmt"
-	"github.com/redis/go-redis/v9"
 	"slices"
 	"time"
+
+	"github.com/redis/go-redis/v9"
+
+	"github.com/golang-migrate/migrate/v4"
+	migratepgx "github.com/golang-migrate/migrate/v4/database/pgx/v5"
+	"github.com/golang-migrate/migrate/v4/source/iofs"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type RouteContext struct {
-	redis  *redis.Client
-	Config *Config
+	redis   *redis.Client
+	Config  *Config
+	Pool    *pgxpool.Pool
+	Context *context.Context
 }
 
 func NewRouteContext() RouteContext {
 	config := NewConfig()
 	var client *redis.Client = nil
 	if config.RedisAddress != "" {
-		client = redis.NewClient(&redis.Options{
-			Addr:     config.RedisAddress,
-			Username: config.RedisUsername,
-			Password: config.RedisPassword,
-		})
+		if config.RedisUsername == nil {
+			opts, err := redis.ParseURL(config.RedisAddress)
+			if err != nil {
+				panic(err)
+			}
+
+			client = redis.NewClient(opts)
+		} else {
+			client = redis.NewClient(&redis.Options{
+				Addr:     config.RedisAddress,
+				Username: *config.RedisUsername,
+				Password: *config.RedisPassword,
+			})
+		}
 	}
 
-	return RouteContext{client, &config}
+	ctx := context.Background()
+	pool, err := pgxpool.New(ctx, config.PostgresUri)
+	if err != nil {
+		panic(err)
+	}
+
+	if err := pool.Ping(ctx); err != nil {
+		panic(err)
+	}
+
+	routeContext := RouteContext{client, &config, pool, &ctx}
+	if err := setupDatabase(&routeContext); err != nil {
+		panic(err)
+	}
+
+	return routeContext
 }
 
 func (ctx *RouteContext) IsHighProfileAccount(playerId string) bool {
@@ -127,4 +162,43 @@ func (ctx *RouteContext) AddToErrorCache(path string, key string, duration time.
 	}
 	result := ctx.redis.Set(context.Background(), createKey(path, createKey(key, "error")), "", duration)
 	return result.Err()
+}
+
+//go:embed migrations/*.sql
+var migrationFS embed.FS
+
+func setupDatabase(ctx *RouteContext) error {
+	connection, err := sql.Open("pgx", ctx.Config.PostgresUri)
+	if err != nil {
+		return fmt.Errorf("failed to connect to database: %w", err)
+	}
+	defer connection.Close()
+
+	driver, err := migratepgx.WithInstance(connection, &migratepgx.Config{})
+	if err != nil {
+		return fmt.Errorf("failed to create migrate database driver: %w", err)
+	}
+
+	source, err := iofs.New(migrationFS, "migrations")
+	if err != nil {
+		return fmt.Errorf("failed to create migrate source driver: %w", err)
+	}
+
+	instance, err := migrate.NewWithInstance("migration-fs", source, "migrate-pgx-db", driver)
+	if err != nil {
+		return fmt.Errorf("failed to create migrate instance: %w", err)
+	}
+
+	if err = instance.Up(); err != nil && !errors.Is(err, migrate.ErrNoChange) {
+		return fmt.Errorf("failed to run migrations: %w", err)
+	}
+
+	srcErr, dbErr := instance.Close()
+	if srcErr != nil {
+		return fmt.Errorf("failed to close migrate source: %w", srcErr)
+	}
+	if dbErr != nil {
+		return fmt.Errorf("failed to close migrate database: %w", dbErr)
+	}
+	return nil
 }

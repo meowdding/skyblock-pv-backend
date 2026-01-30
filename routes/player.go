@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"skyblock-pv-backend/routes/utils"
+	"skyblock-pv-backend/internal"
 	"time"
 )
 
@@ -13,7 +13,7 @@ const playerFailedCacheDuration = 5 * time.Minute
 const playerCacheName = "player"
 const playerHypixelPath = "/v2/player"
 
-func GetPlayer(ctx utils.RouteContext, authentication utils.AuthenticationContext, res http.ResponseWriter, req *http.Request) {
+func GetPlayer(ctx internal.RouteContext, authentication internal.AuthenticationContext, res http.ResponseWriter, req *http.Request) {
 	if !ctx.Config.Endpoints.Players {
 		res.Header().Set("Content-Type", "application/json")
 		res.Header().Set("Cache-Control", fmt.Sprintf("max-age=%d", int(playerCacheDuration.Seconds())))
@@ -27,7 +27,7 @@ func GetPlayer(ctx utils.RouteContext, authentication utils.AuthenticationContex
 				res.WriteHeader(http.StatusInternalServerError)
 				return
 			}
-			profiles, err := utils.GetFromHypixel(ctx, fmt.Sprintf("%s?uuid=%s", playerHypixelPath, playerId), true)
+			profiles, err := internal.GetFromHypixel(ctx, fmt.Sprintf("%s?uuid=%s", playerHypixelPath, playerId), true)
 			if err == nil && profiles != nil {
 				err = ctx.AddToCache(playerCacheName, playerId, profiles, playerCacheDuration)
 			} else {

@@ -1,10 +1,11 @@
 package routes
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
-	"skyblock-pv-backend/routes/utils"
+	"skyblock-pv-backend/internal"
 	"strconv"
 	"time"
 )
@@ -15,7 +16,16 @@ const profileFailedCacheDuration = 3 * time.Minute
 const profileCacheName = "profiles"
 const profileHypixelPath = "/v2/skyblock/profiles"
 
-func GetProfiles(ctx utils.RouteContext, authentication utils.AuthenticationContext, res http.ResponseWriter, req *http.Request) {
+type profileResponse struct {
+	Status   bool      `json:"success"`
+	Profiles []profile `json:"profiles"`
+}
+
+type profile struct {
+	ProfileId string `json:"profile_id"`
+}
+
+func GetProfiles(ctx internal.RouteContext, authentication internal.AuthenticationContext, res http.ResponseWriter, req *http.Request) {
 	playerId := req.PathValue("id")
 	result, err := ctx.GetFromCache(&authentication, profileCacheName, playerId)
 
@@ -24,7 +34,7 @@ func GetProfiles(ctx utils.RouteContext, authentication utils.AuthenticationCont
 			res.WriteHeader(http.StatusInternalServerError)
 			return
 		}
-		profiles, err := utils.GetFromHypixel(ctx, fmt.Sprintf("%s?uuid=%s", profileHypixelPath, playerId), true)
+		profiles, err := internal.GetFromHypixel(ctx, fmt.Sprintf("%s?uuid=%s", profileHypixelPath, playerId), true)
 		if err == nil && profiles != nil {
 			cacheDuration := profileCacheDuration
 			if ctx.IsHighProfileAccount(playerId) {
@@ -37,6 +47,25 @@ func GetProfiles(ctx utils.RouteContext, authentication utils.AuthenticationCont
 				fmt.Printf("Failed to cache profiles error: %v\n", cacheError)
 			}
 		}
+
+		go func() {
+			data := profiles
+			if data == nil {
+				return
+			}
+
+			response := profileResponse{}
+			if err := json.Unmarshal([]byte(*data), &response); err != nil || response.Profiles == nil {
+				return
+			}
+
+			profileIds := make([]string, len(response.Profiles))
+			for i, p := range response.Profiles {
+				profileIds[i] = p.ProfileId
+			}
+
+			CheckData(ctx, playerId, profileIds)
+		}()
 
 		if err != nil || profiles == nil {
 			res.WriteHeader(http.StatusInternalServerError)

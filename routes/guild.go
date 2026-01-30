@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"skyblock-pv-backend/routes/utils"
+	"skyblock-pv-backend/internal"
 	"skyblock-pv-backend/utils/responses"
 	"strings"
 	"time"
@@ -15,7 +15,7 @@ const guildCacheDuration = 5 * 24 * time.Hour
 const guildCacheName = "guild"
 const guildHypixelPath = "/v2/guild"
 
-func cacheGuild(ctx utils.RouteContext, guild string) error {
+func cacheGuild(ctx internal.RouteContext, guild string) error {
 	var response = responses.GuildResponse{}
 	err := json.Unmarshal([]byte(guild), &response)
 	if err != nil {
@@ -41,12 +41,12 @@ func cacheGuild(ctx utils.RouteContext, guild string) error {
 	return nil
 }
 
-func GetGuild(ctx utils.RouteContext, authentication utils.AuthenticationContext, res http.ResponseWriter, req *http.Request) {
+func GetGuild(ctx internal.RouteContext, authentication internal.AuthenticationContext, res http.ResponseWriter, req *http.Request) {
 	playerId := req.PathValue("id")
 	result, err := ctx.GetFromCache(&authentication, guildCacheName, playerId)
 
 	if err != nil {
-		guild, err := utils.GetFromHypixel(ctx, fmt.Sprintf("%s?player=%s", guildHypixelPath, playerId), true)
+		guild, err := internal.GetFromHypixel(ctx, fmt.Sprintf("%s?player=%s", guildHypixelPath, playerId), true)
 		if err == nil && guild != nil {
 			err = cacheGuild(ctx, *guild)
 		}
