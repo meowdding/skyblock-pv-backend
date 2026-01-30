@@ -16,7 +16,7 @@ type Config struct {
 	DevMode             bool            `json:"dev_mode"`
 	HighProfileAccounts []string        `json:"high_profile_accounts"`
 	Endpoints           EndpointsConfig `json:"endpoints"`
-	PostgresUri         *string         `json:"postgres_uri,omitempty"`
+	PostgresUri         string          `json:"postgres_uri,omitempty"`
 }
 
 type EndpointsConfig struct {

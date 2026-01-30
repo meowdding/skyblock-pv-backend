@@ -6,7 +6,6 @@ import (
 	"embed"
 	"errors"
 	"fmt"
-	"os"
 	"slices"
 	"time"
 
@@ -46,18 +45,19 @@ func NewRouteContext() RouteContext {
 	}
 
 	ctx := context.Background()
-	pool, err := pgxpool.New(ctx, config.dbUri())
+	pool, err := pgxpool.New(ctx, config.PostgresUri)
 	if err != nil {
 		panic(err)
 	}
-	err = pool.Ping(ctx)
-	if err != nil {
+
+	if err := pool.Ping(ctx); err != nil {
 		panic(err)
 	}
 
 	routeContext := RouteContext{client, &config, pool, &ctx}
-
-	setupDatabase(&routeContext)
+	if err := setupDatabase(&routeContext); err != nil {
+		panic(err)
+	}
 
 	return routeContext
 }
@@ -164,47 +164,41 @@ func (ctx *RouteContext) AddToErrorCache(path string, key string, duration time.
 	return result.Err()
 }
 
-func (conf Config) dbUri() string {
-	if conf.DevMode {
-		return *conf.PostgresUri
-	}
-
-	user := os.Getenv("POSTGRES_USER")
-	password := os.Getenv("POSTGRES_PASSWORD")
-	host := os.Getenv("POSTGRES_HOST")
-	port := os.Getenv("POSTGRES_PORT")
-	db := os.Getenv("POSTGRES_DB")
-	return fmt.Sprintf("postgresql://%s:%s@%s:%s/%s", user, password, host, port, db)
-}
-
 //go:embed migrations/*.sql
 var migrationFS embed.FS
 
-func setupDatabase(ctx *RouteContext) {
-	// Create a dedicated connection for migrations because migrate wont take a pgx conn (needs database/sql conn)
-	migrateConn, err := sql.Open("pgx", ctx.Config.dbUri())
+func setupDatabase(ctx *RouteContext) error {
+	connection, err := sql.Open("pgx", ctx.Config.PostgresUri)
 	if err != nil {
-		panic(fmt.Sprintf("failed to acquire connection for migrations: %w", err))
+		return fmt.Errorf("failed to connect to database: %w", err)
 	}
-	//goland:noinspection GoUnhandledErrorResult
-	defer migrateConn.Close()
-	migrateDriver, err := migratepgx.WithInstance(migrateConn, &migratepgx.Config{})
+	defer connection.Close()
 
+	driver, err := migratepgx.WithInstance(connection, &migratepgx.Config{})
 	if err != nil {
-		panic(fmt.Sprintf("failed to create migrate driver: %s", err))
-	}
-	migrateSource, err := iofs.New(migrationFS, "migrations")
-	if err != nil {
-		panic(fmt.Sprintf("failed to create migrate source: %s", err))
-	}
-	m, err := migrate.NewWithInstance("migration-fs", migrateSource, "migration-db", migrateDriver)
-	if err != nil {
-		panic(fmt.Sprintf("failed to create migrate instance: %s", err))
+		return fmt.Errorf("failed to create migrate database driver: %w", err)
 	}
 
-	// Apply all migrations up to the latest
-	err = m.Up()
-	if err != nil && !errors.Is(err, migrate.ErrNoChange) {
-		panic(fmt.Sprintf("failed to apply migrations: %s", err))
+	source, err := iofs.New(migrationFS, "migrations")
+	if err != nil {
+		return fmt.Errorf("failed to create migrate source driver: %w", err)
 	}
+
+	instance, err := migrate.NewWithInstance("migration-fs", source, "migrate-pgx-db", driver)
+	if err != nil {
+		return fmt.Errorf("failed to create migrate instance: %w", err)
+	}
+
+	if err = instance.Up(); err != nil && !errors.Is(err, migrate.ErrNoChange) {
+		return fmt.Errorf("failed to run migrations: %w", err)
+	}
+
+	srcErr, dbErr := instance.Close()
+	if srcErr != nil {
+		return fmt.Errorf("failed to close migrate source: %w", srcErr)
+	}
+	if dbErr != nil {
+		return fmt.Errorf("failed to close migrate database: %w", dbErr)
+	}
+	return nil
 }
