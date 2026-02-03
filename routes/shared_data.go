@@ -88,7 +88,7 @@ const deleteSharedData = `
 func DeleteData(ctx internal.RouteContext, authentication internal.AuthenticationContext, res http.ResponseWriter, req *http.Request) {
 	playerId := authentication.Requester
 
-	if _, err := ctx.Pool.Exec(*ctx.Context, playerId, playerId); err != nil {
+	if _, err := ctx.Pool.Exec(*ctx.Context, deleteSharedData, playerId, playerId); err != nil {
 		res.WriteHeader(http.StatusInternalServerError)
 		fmt.Printf(
 			"[/shared_data] Failed to delete player data for '%s' with user-agent '%s': %v\n",
