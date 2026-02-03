@@ -232,13 +232,31 @@ type HuntingBox map[string]Attribute
 
 type Attribute struct {
 	Owned    int32 `json:"owned"`
-	Syphoned int32 `json:"consumed"`
+	Syphoned int32 `json:"syphoned"`
 }
 
 func (c *HuntingBox) setupDefaults() {}
 
 var PutHuntingBox = putData("hunting_box", func() defaults {
 	return &HuntingBox{}
+})
+
+type HuntingToolkit struct {
+	Axe        interface{} `json:"axe"`
+	BlackHole  interface{} `json:"black_hole"`
+	Lasso      interface{} `json:"lasso"`
+	FishingNet interface{} `json:"fishing_net"`
+	Trap0      interface{} `json:"trap0"`
+	Trap1      interface{} `json:"trap1"`
+	Trap2      interface{} `json:"trap2"`
+	Trap3      interface{} `json:"trap3"`
+	Trap4      interface{} `json:"trap4"`
+}
+
+func (c *HuntingToolkit) setupDefaults() {}
+
+var PutHuntingToolkit = putData("hunting_toolkit", func() defaults {
+	return &HuntingToolkit{}
 })
 
 type TimePocket map[string]interface{}
@@ -249,17 +267,22 @@ var PutTimePocket = putData("time_pocket", func() defaults {
 	return &TimePocket{}
 })
 
+type GardenChip struct {
+	Consumed int32 `json:"consumed"`
+	Level    int32 `json:"owned"`
+}
+
 type GardenChips struct {
-	VerminVaporizer int32 `json:"vermin_vaporizer"`
-	Synthesis       int32 `json:"synthesis"`
-	Sowledge        int32 `json:"sowledge"`
-	Mechamind       int32 `json:"mechamind"`
-	Hypercharge     int32 `json:"hypercharge"`
-	Evergreen       int32 `json:"evergreen"`
-	Overdrive       int32 `json:"overdrive"`
-	Cropshot        int32 `json:"cropshot"`
-	Quickdraw       int32 `json:"quickdraw"`
-	Rarefinder      int32 `json:"rarefinder"`
+	VerminVaporizer GardenChip `json:"vermin_vaporizer"`
+	Synthesis       GardenChip `json:"synthesis"`
+	Sowledge        GardenChip `json:"sowledge"`
+	Mechamind       GardenChip `json:"mechamind"`
+	Hypercharge     GardenChip `json:"hypercharge"`
+	Evergreen       GardenChip `json:"evergreen"`
+	Overdrive       GardenChip `json:"overdrive"`
+	Cropshot        GardenChip `json:"cropshot"`
+	Quickdraw       GardenChip `json:"quickdraw"`
+	Rarefinder      GardenChip `json:"rarefinder"`
 }
 
 func (c *GardenChips) setupDefaults() {}
@@ -280,6 +303,7 @@ type MiscGardenData struct {
 	UnlockedGreenhouseTiles int32           `json:"unlocked_greenhouse_tiles,omitempty"`
 	GrowthSpeed             int32           `json:"growth_speed"`
 	PlantYield              int32           `json:"plant_yield"`
+	Sowdust                 int64           `json:"sowdust"`
 	Mutations               []MutationState `json:"mutations"`
 }
 
@@ -290,7 +314,7 @@ func (c *MiscGardenData) setupDefaults() {
 }
 
 var PutMiscGardenData = putData("garden_data", func() defaults {
-	return &GardenChips{}
+	return &MiscGardenData{}
 })
 
 type MiscForagingData struct {

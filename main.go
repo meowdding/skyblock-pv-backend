@@ -133,6 +133,7 @@ func main() {
 	registerUserData("hotm", routes.PutHotmData)
 	registerUserData("consumeables", routes.PutConsumeablesData)
 	registerUserData("hunting_box", routes.PutHuntingBox)
+	registerUserData("hunting_toolkit", routes.PutHuntingToolkit)
 	registerUserData("melody", routes.PutMelodyData)
 	registerUserData("foraging", routes.PutMiscForagingData)
 	registerUserData("garden", routes.PutMiscGardenData)
