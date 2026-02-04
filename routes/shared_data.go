@@ -259,9 +259,13 @@ var PutHuntingToolkit = putData("hunting_toolkit", func() defaults {
 	return &HuntingToolkit{}
 })
 
-type TimePocket map[string]interface{}
+type TimePocket []interface{}
 
-func (c *TimePocket) setupDefaults() {}
+func (c *TimePocket) setupDefaults() {
+	if len(*c) > 9 {
+		*c = (*c)[:8]
+	}
+}
 
 var PutTimePocket = putData("time_pocket", func() defaults {
 	return &TimePocket{}
